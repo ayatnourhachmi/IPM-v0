@@ -10,12 +10,8 @@ Single user role in v0: **CLIENT DXC** only. No Sponsor Métier.
 
 ## Full Pipeline (3 Phases · 3 Stage Gates)
 
-```
-🔵 SOURCING PHASE                🟢 QUALIFICATION PHASE                 🟠 DELIVERY PHASE
-┌──────────────┐  ┌───────────┐  ◆SG-1◆  ┌────────────┐  ◆SG-2◆  ┌───────────┐  ◆SG-3◆  ┌───────┐  ┌──────────┐
-│Business Need │→ │ Discovery │→ │     │→ │ Evaluation │→ │     │→ │ Selection │→ │     │→ │ Recos │→ │ PDF/DOCX │
-└──────────────┘  └───────────┘  ◆     ◆  └────────────┘  ◆     ◆  └───────────┘  ◆     ◆  └───────┘  └──────────┘
-```
+<img width="1850" height="271" alt="image" src="https://github.com/user-attachments/assets/3e2fc801-7dd8-433a-aed5-a1a7eec79af2" />
+
 
 The workflow header is **sticky** on every page and shows the current step highlighted, completed steps with ✓, and the current status badge.
 
