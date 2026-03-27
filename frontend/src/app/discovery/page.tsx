@@ -1,5 +1,6 @@
 /**
- * Discovery page — 4 tool cards, selection recap, proceed to qualification.
+ * Discovery page — 2-panel progressive disclosure layout.
+ * The proceed button and explore modal live inside DiscoveryPanel.
  */
 
 "use client";
@@ -8,12 +9,15 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { WorkflowBar } from "@/components/layout/WorkflowBar";
 import { DiscoveryPanel } from "@/components/discovery/DiscoveryPanel";
-import type { DiscoveryItem } from "@/lib/discoveryStubs";
+import { Sg2ValidationPanel } from "@/components/sourcing/Sg2ValidationPanel";
+import { updateNeedStatus } from "@/lib/api";
 
 function DiscoveryPageContent() {
     const searchParams = useSearchParams();
     const ipmId = searchParams.get("id") || undefined;
-    const [selectedItems, setSelectedItems] = useState<DiscoveryItem[]>([]);
+    const [cardStates, setCardStates] = useState<Record<string, string>>({});
+    const [totalSelected, setTotalSelected] = useState(0);
+    const [showSg2, setShowSg2] = useState(false);
 
     useEffect(() => {
         const canvas = document.getElementById("bg-canvas") as HTMLCanvasElement | null;
@@ -35,31 +39,51 @@ function DiscoveryPageContent() {
     return (
         <div className="app-shell">
             <canvas id="bg-canvas" style={{ position: "fixed", top: 0, left: 0, zIndex: -1 }} />
-            <WorkflowBar currentStep="discovery" status="draft" ipmId={ipmId} />
+            <WorkflowBar currentStep="discovery" status="submitted" ipmId={ipmId} />
 
             <div className="app-content" style={{ overflowY: "auto" }}>
                 <div className="glow-divider" />
 
-                <div style={{ padding: "20px 24px 0", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                    <div>
-                        <h1 style={{ fontSize: 22, fontWeight: 300 }}>Discovery</h1>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                            Launch tools to surface relevant solutions, signals, and opportunities
-                        </div>
+                <div style={{ padding: "20px 24px 0" }}>
+                    <h1 style={{ fontSize: 22, fontWeight: 300 }}>Discovery</h1>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                        Launch tools to surface relevant solutions, signals, and opportunities
                     </div>
-                    <button
-                        className={`disc-proceed-btn${selectedItems.length > 0 ? " ready" : ""}`}
-                        disabled={selectedItems.length === 0}
-                        onClick={() => {
-                            window.location.href = `/evaluation?id=${ipmId}`;
-                        }}
-                    >
-                        Proceed to Qualification →
-                    </button>
                 </div>
 
-                <DiscoveryPanel onSelectionChange={setSelectedItems} />
+                <DiscoveryPanel
+                    needId={ipmId}
+                    onCardStatesChange={(states, total) => {
+                        setCardStates(states as Record<string, string>);
+                        setTotalSelected(total);
+                    }}
+                    onProceed={() => {
+                        localStorage.setItem("ipm_sg2_state", JSON.stringify({ cardStates, totalSelected }));
+                        setShowSg2(true);
+                    }}
+                />
             </div>
+
+            <Sg2ValidationPanel
+                open={showSg2}
+                onGo={async () => {
+                    if (ipmId) {
+                        try {
+                            await updateNeedStatus(ipmId, { status: "in_qualification" });
+                        } catch { /* continue navigation even on error */ }
+                    }
+                    window.location.href = `/evaluation?id=${ipmId}`;
+                }}
+                onRework={() => setShowSg2(false)}
+                onAbandon={async () => {
+                    if (ipmId) {
+                        try {
+                            await updateNeedStatus(ipmId, { status: "abandoned" });
+                        } catch { /* ignore */ }
+                    }
+                    window.location.href = "/dashboard";
+                }}
+            />
         </div>
     );
 }

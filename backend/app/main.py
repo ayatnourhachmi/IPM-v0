@@ -46,7 +46,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.warning("ChromaDB seeding failed (non-fatal): %s", exc)
 
-    # 3. Ensure MinIO bucket exists
+    # 4. Seed DXC product catalog into dxc_catalog collection
+    try:
+        from app.core.seed_catalog import seed_catalog
+        seed_catalog()
+    except Exception as exc:
+        logger.warning("Catalog seeding failed (non-fatal): %s", exc)
+
+    # 5. Ensure MinIO bucket exists
     try:
         from app.core.minio_client import ensure_bucket
         ensure_bucket()

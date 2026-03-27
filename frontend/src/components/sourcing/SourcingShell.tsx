@@ -162,6 +162,10 @@ export function SourcingShell() {
                             setShowDuplicates(false);
                             router.push(`/discovery?id=${currentNeed?.id}`);
                         }}
+                        onViewDuplicate={(id) => {
+                            setShowDuplicates(false);
+                            router.push(`/discovery?id=${id}`);
+                        }}
                     />
                 )}
 

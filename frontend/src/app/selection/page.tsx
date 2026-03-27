@@ -1,19 +1,17 @@
 /**
- * Selection page (QUALIFICATION PHASE — after SG-2 GO).
+ * Selection page (QUALIFICATION PHASE — after SG-3 GO).
+ * No gate on this page — user proceeds directly to Recos.
  */
 
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { WorkflowBar } from "@/components/layout/WorkflowBar";
-import { StageGate } from "@/components/gates/StageGate";
 
 function SelectionPageContent() {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const ipmId = searchParams.get("id") || undefined;
-    const [showGate, setShowGate] = useState(false);
 
     useEffect(() => {
         const canvas = document.getElementById("bg-canvas") as HTMLCanvasElement | null;
@@ -42,8 +40,8 @@ function SelectionPageContent() {
                 <div className="stub-page">
                     <div className="stub-page-header">
                         <h1 className="stub-page-title">Selection</h1>
-                        <button className="action-btn primary" onClick={() => setShowGate(true)}>
-                            Proceed to SG-3 →
+                        <button className="action-btn primary" onClick={() => window.location.href = `/recos?id=${ipmId}`}>
+                            Proceed to Recos →
                         </button>
                     </div>
 
@@ -71,27 +69,6 @@ function SelectionPageContent() {
                     </div>
                 </div>
             </div>
-
-            {showGate && (
-                <StageGate
-                    gateId="SG-3"
-                    title="Validation finale avant livraison"
-                    checklist={[
-                        { label: "Exactly 1 solution selected?", met: true },
-                        { label: "Business need fully addressed?", met: true },
-                    ]}
-                    onGo={() => {
-                        router.push(`/recos?id=${ipmId}`);
-                    }}
-                    onRework={(note) => {
-                        router.push(`/selection?id=${ipmId}`);
-                    }}
-                    onStop={(reason) => {
-                        window.location.href = "/dashboard";
-                    }}
-                    onClose={() => setShowGate(false)}
-                />
-            )}
         </div>
     );
 }

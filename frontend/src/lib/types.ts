@@ -4,7 +4,7 @@
 
 export type Horizon = "court_terme" | "moyen_terme" | "long_terme";
 
-export type Status = "draft" | "submitted" | "rework" | "abandoned" | "in_qualification" | "delivery";
+export type Status = "draft" | "submitted" | "solutions_reviewed" | "rework" | "abandoned" | "in_qualification" | "delivery";
 
 export type Objectif = "cost_reduction" | "cx_improvement" | "risk_mitigation" | "market_opportunity";
 
@@ -59,6 +59,37 @@ export interface UpdateStatusRequest {
     note?: string;
 }
 
+export interface CatalogProduct {
+    id: string;
+    name: string;
+    description: string;
+    ipm_stage?: string;
+    internal_external?: string;
+    industry_focus?: string;
+    ai_type?: string;
+    ai_criticality?: string;
+    maturity_level?: string;
+    value_layer?: string;
+    monetization_potential?: string;
+    business_impact?: string;
+    lead?: string;
+    features: string[];
+    relevance_score: number;
+}
+
+export interface CatalogSearchResponse {
+    results: CatalogProduct[];
+    total: number;
+}
+
+export interface GapAnalysisResponse {
+    features_matching: string[];
+    features_missing: string[];
+    resources_needed: string[];
+    fit_score: number;
+    solution_name: string;
+}
+
 export const HORIZON_LABELS: Record<Horizon, { label: string; detail: string }> = {
     court_terme: { label: "Short term", detail: "< 3 months" },
     moyen_terme: { label: "Mid term", detail: "6–12 months" },
@@ -68,6 +99,7 @@ export const HORIZON_LABELS: Record<Horizon, { label: string; detail: string }> 
 export const STATUS_LABELS: Record<Status, string> = {
     draft: "Draft",
     submitted: "Submitted",
+    solutions_reviewed: "Solutions Reviewed",
     rework: "Rework",
     abandoned: "Abandoned",
     in_qualification: "In Qualification",

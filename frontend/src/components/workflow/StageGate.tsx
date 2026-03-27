@@ -1,6 +1,7 @@
 /**
  * StageGate — Diamond gate node with dashed lines, ◆/✓, pulse-ring when active.
  * Uses framer-motion spring animation. Clickable.
+ * Completed gates show animated checkmark with accent-subtle filled background.
  * Adapted from stageflow-compass reference.
  */
 
@@ -72,20 +73,34 @@ export default function StageGate({ label, isActive, isCompleted, color, delay =
                     width: 32,
                     height: 32,
                     transform: "rotate(45deg)",
-                    border: `1px solid ${c.border}`,
-                    background: "var(--wf-bg)",
+                    border: `1px solid ${isCompleted ? "var(--accent)" : c.border}`,
+                    background: isCompleted ? "var(--accent-subtle)" : "var(--wf-bg)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    transition: "background 0.3s, border-color 0.3s",
                 }}>
                     <span style={{
                         transform: "rotate(-45deg)",
                         fontFamily: "var(--font-mono)",
                         fontSize: 9,
                         fontWeight: 500,
-                        color: isCompleted ? c.text : "var(--wf-muted-fg)",
+                        color: isCompleted ? "var(--accent)" : "var(--wf-muted-fg)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                     }}>
-                        {isCompleted ? "✓" : "◆"}
+                        {isCompleted ? (
+                            <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                    <path d="M3 7L6 10L11 4" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </motion.div>
+                        ) : "◆"}
                     </span>
                 </div>
             </div>
@@ -102,7 +117,8 @@ export default function StageGate({ label, isActive, isCompleted, color, delay =
                 fontFamily: "var(--font-mono)",
                 fontSize: 10,
                 fontWeight: 500,
-                color: isActive ? c.text : "var(--wf-muted-fg)",
+                color: isCompleted ? "var(--accent)" : isActive ? c.text : "var(--wf-muted-fg)",
+                transition: "color 0.3s",
             }}>
                 {label}
             </span>

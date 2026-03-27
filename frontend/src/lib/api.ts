@@ -2,7 +2,7 @@
  * Typed fetch wrapper for all IPM API endpoints.
  */
 
-import type { AnalyzeResponse, BusinessNeed, CreateNeedRequest, UpdateStatusRequest } from "./types";
+import type { AnalyzeResponse, BusinessNeed, CatalogProduct, CatalogSearchResponse, CreateNeedRequest, GapAnalysisResponse, UpdateStatusRequest } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -48,4 +48,17 @@ export function updateNeedStatus(id: string, data: UpdateStatusRequest): Promise
 
 export function getNeed(id: string): Promise<BusinessNeed> {
     return request<BusinessNeed>(`/api/v1/needs/${id}`);
+}
+
+export function searchCatalog(needId: string): Promise<CatalogSearchResponse> {
+    return request<CatalogSearchResponse>(`/api/v1/needs/${needId}/catalog-search`, {
+        method: "POST",
+    });
+}
+
+export function getGapAnalysis(needId: string, selectedSolution: CatalogProduct): Promise<GapAnalysisResponse> {
+    return request<GapAnalysisResponse>(`/api/v1/needs/${needId}/gap-analysis`, {
+        method: "POST",
+        body: JSON.stringify({ selected_solution: selectedSolution }),
+    });
 }

@@ -15,6 +15,39 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
+    "gap-analysis": {
+        "system": (
+            "You are an enterprise innovation analyst at DXC Technology.\n"
+            "Given a business need and a proposed internal solution, perform\n"
+            "a structured gap analysis. Be specific and concise.\n"
+            "Return ONLY valid JSON — no markdown, no explanation, no preamble."
+        ),
+        "user": (
+            "Business need:\n"
+            "- Pitch: {{pitch}}\n"
+            "- Objective: {{objectif}}\n"
+            "- Expected impact: {{impact}}\n"
+            "- Domain: {{domains}}\n\n"
+            "Proposed DXC solution:\n"
+            "- Name: {{solution_name}}\n"
+            "- Description: {{solution_description}}\n"
+            "- Current features: {{solution_features}}\n"
+            "- Business impact: {{solution_business_impact}}\n"
+            "- Maturity: {{solution_maturity}}\n\n"
+            "Return this exact JSON structure:\n"
+            "{\n"
+            '  "features_matching": ["feature that directly addresses the need", "..."],\n'
+            '  "features_missing": ["capability the need requires but solution lacks", "..."],\n'
+            '  "resources_needed": ["team / integration / data / infrastructure needed", "..."],\n'
+            '  "fit_score": <integer 1-10 where 10 = perfect fit>\n'
+            "}\n\n"
+            "Rules:\n"
+            "- features_matching: only list real overlaps, not generic claims\n"
+            "- features_missing: be specific about gaps, not vague\n"
+            "- resources_needed: practical implementation requirements\n"
+            "- fit_score: be honest, not optimistic"
+        ),
+    },
     "nlp_tagging": {
         "system": (
             "You are a senior innovation portfolio analyst at a large IT services company. "

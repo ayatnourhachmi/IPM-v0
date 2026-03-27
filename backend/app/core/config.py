@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # --- Embedding Provider ---
     embedding_provider: str = "local"  # "local" | "openai"
     openai_api_key: str = ""
-    embedding_model_local: str = "all-MiniLM-L6-v2"
+    embedding_model_local: str = "BAAI/bge-small-en-v1.5"
     embedding_model_openai: str = "text-embedding-ada-002"
 
     # --- Langfuse ---

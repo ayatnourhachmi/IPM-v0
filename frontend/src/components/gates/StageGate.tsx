@@ -14,7 +14,7 @@ interface ChecklistItem {
 }
 
 interface StageGateProps {
-    gateId: "SG-1" | "SG-2" | "SG-3";
+    gateId: "SG-1" | "SG-2" | "SG-3" | "SG-4" | "SG-5";
     title: string;
     checklist: ChecklistItem[];
     onGo: () => void;
@@ -34,6 +34,7 @@ export function StageGate({
 }: StageGateProps) {
     const [mode, setMode] = useState<"idle" | "rework" | "stop">("idle");
     const [note, setNote] = useState("");
+    const allMet = checklist.every((c) => c.met);
 
     const handleConfirm = () => {
         if (!note.trim()) return;
@@ -82,9 +83,19 @@ export function StageGate({
                 <div className="gate-actions">
                     {mode === "idle" ? (
                         <>
-                            <button className="gate-btn go" onClick={onGo}>
+                            <button
+                                className="gate-btn go"
+                                onClick={onGo}
+                                disabled={!allMet}
+                                style={{ opacity: allMet ? 1 : 0.4, cursor: allMet ? "pointer" : "not-allowed" }}
+                            >
                                 ✅ GO
                             </button>
+                            {!allMet && (
+                                <p style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", margin: "2px 0 0" }}>
+                                    Complete all checklist items to proceed
+                                </p>
+                            )}
                             <button className="gate-btn rework" onClick={() => setMode("rework")}>
                                 🔄 Rework
                             </button>

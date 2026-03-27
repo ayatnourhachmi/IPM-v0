@@ -9,9 +9,10 @@ import type { DuplicateMatch } from "@/lib/types";
 interface DuplicateBannerProps {
     matches: DuplicateMatch[];
     onDismiss: () => void;
+    onViewDuplicate: (id: string) => void;
 }
 
-export function DuplicateBanner({ matches, onDismiss }: DuplicateBannerProps) {
+export function DuplicateBanner({ matches, onDismiss, onViewDuplicate }: DuplicateBannerProps) {
     if (matches.length === 0) return null;
 
     return (
@@ -28,6 +29,13 @@ export function DuplicateBanner({ matches, onDismiss }: DuplicateBannerProps) {
                             {m.pitch.length > 80 ? m.pitch.slice(0, 80) + "…" : m.pitch}
                         </span>
                         <span className="dup-score">{Math.round(m.similarity_score * 100)}%</span>
+                        <button
+                            className="dup-btn"
+                            style={{ marginLeft: "auto", whiteSpace: "nowrap" }}
+                            onClick={() => onViewDuplicate(m.id)}
+                        >
+                            View →
+                        </button>
                     </div>
                 ))}
                 <div className="dup-actions">

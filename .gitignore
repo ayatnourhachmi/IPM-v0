@@ -19,6 +19,7 @@ node_modules/
 .next/
 out/
 .turbo/
+*.tsbuildinfo
 
 # IDE
 .vscode/
@@ -38,3 +39,6 @@ minio_data/
 
 # Alembic
 alembic/versions/__pycache__/
+
+# Claude
+CLAUDE.md

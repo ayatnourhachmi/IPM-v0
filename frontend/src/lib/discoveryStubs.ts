@@ -19,16 +19,17 @@ export interface DiscoverySource {
     items: DiscoveryItem[];
 }
 
-// TODO: replace stub with real DXC AI Catalog (DAIC) API
+// REPLACED: Panel 1 now calls /api/v1/needs/{id}/catalog-search
+// Keep the stub data below commented out for reference only
 export const STUB_DXC_CATALOG: DiscoverySource = {
     key: "dxc_catalog",
     title: "DXC Internal Catalog",
     sourceLabel: "DAIC / AI Catalog",
     items: [
-        { id: "dxc-1", name: "DXC SmartAssist AI", description: "Enterprise-grade NLP chatbot platform for IT service desk automation with multi-language support.", relevance: 92 },
-        { id: "dxc-2", name: "DXC Analytics Cloud", description: "Unified BI and data analytics platform with predictive modeling capabilities.", relevance: 78 },
-        { id: "dxc-3", name: "DXC Process Miner", description: "RPA-enabled process discovery tool that identifies automation opportunities in business workflows.", relevance: 85 },
-        { id: "dxc-4", name: "DXC Secure Vault", description: "Zero-trust identity and access management platform for hybrid cloud environments.", relevance: 64 },
+        // { id: "dxc-1", name: "DXC SmartAssist AI", description: "Enterprise-grade NLP chatbot platform for IT service desk automation with multi-language support.", relevance: 92 },
+        // { id: "dxc-2", name: "DXC Analytics Cloud", description: "Unified BI and data analytics platform with predictive modeling capabilities.", relevance: 78 },
+        // { id: "dxc-3", name: "DXC Process Miner", description: "RPA-enabled process discovery tool that identifies automation opportunities in business workflows.", relevance: 85 },
+        // { id: "dxc-4", name: "DXC Secure Vault", description: "Zero-trust identity and access management platform for hybrid cloud environments.", relevance: 64 },
     ],
 };
 

@@ -17,7 +17,7 @@ MAX_RESULTS = 3
 def upsert_embedding(need_id: str, pitch: str, status: str, embedding: list[float] | None = None) -> None:
     """Upsert a pitch embedding into ChromaDB. Computes the embedding if not provided."""
     if embedding is None:
-        embedding = embed_text(pitch)
+        embedding = embed_text(pitch, is_query=False)
     collection = get_collection()
     collection.upsert(
         ids=[need_id],
@@ -31,7 +31,7 @@ def upsert_embedding(need_id: str, pitch: str, status: str, embedding: list[floa
 def search_duplicates(pitch: str, exclude_id: str | None = None, embedding: list[float] | None = None) -> list[DuplicateMatch]:
     """Search ChromaDB for business needs similar to the given pitch. Reuses embedding if provided."""
     if embedding is None:
-        embedding = embed_text(pitch)
+        embedding = embed_text(pitch, is_query=False)
     collection = get_collection()
 
     # Query more results than needed to account for excluding self

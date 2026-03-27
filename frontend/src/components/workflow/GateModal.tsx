@@ -26,9 +26,11 @@ interface GateModalProps {
     onGo: () => void;
     onRework: (note: string) => void;
     onStop: (reason: string) => void;
+    /** Optional content rendered above the checklist (e.g., SG-2 solution recap). */
+    headerContent?: React.ReactNode;
 }
 
-export default function GateModal({ isOpen, onClose, gate, onGo, onRework, onStop }: GateModalProps) {
+export default function GateModal({ isOpen, onClose, gate, onGo, onRework, onStop, headerContent }: GateModalProps) {
     const [mode, setMode] = useState<"idle" | "rework" | "stop">("idle");
     const [noteText, setNoteText] = useState("");
 
@@ -119,6 +121,13 @@ export default function GateModal({ isOpen, onClose, gate, onGo, onRework, onSto
 
                         {/* Checklist */}
                         <div style={{ flex: 1, padding: 24, overflowY: "auto" }}>
+                            {/* Optional header content (e.g., solution recap) */}
+                            {headerContent && (
+                                <div style={{ marginBottom: 20 }}>
+                                    {headerContent}
+                                </div>
+                            )}
+
                             <span style={{
                                 fontFamily: "var(--font-mono)",
                                 fontSize: 10,

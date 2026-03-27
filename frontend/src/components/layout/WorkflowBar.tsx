@@ -1,11 +1,15 @@
 /**
- * WorkflowBar — Full IPM pipeline visualization with 3 phases and 3 stage gates.
- * Rebuilt using stageflow-compass components:
+ * WorkflowBar — Full IPM pipeline visualization with 3 phases and 4 stage gates.
+ * Pipeline: BN → [SG-1] → Discovery → [SG-2] → Evaluation → Selection → [SG-3] → Recos → [SG-4] → PDF/DOC
+ *
+ * Phase groupings:
+ *   SOURCING:      Business Need, SG-1, Discovery
+ *   QUALIFICATION: SG-2, Evaluation, Selection, SG-3
+ *   DELIVERY:      Recos, SG-4, PDF/DOC
+ *
  *   Row 1: IPM title + status badge + "Awaiting [gate] Validation"
  *   Row 2: Progress strip (font-mono, ✓/◆/greyed)
- *   Persistent: Full animated diagram (40% of page height)
- *
- * IPM = Innovation Progress Model.
+ *   Persistent: Full animated diagram
  */
 
 "use client";
@@ -24,18 +28,19 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { getNeed, updateNeedStatus } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
-// Pipeline step type (kept for backwards compatibility with all 6 pages)
+// Pipeline step type
 // ---------------------------------------------------------------------------
 
 export type PipelineStep =
     | "business_need"
     | "sg1"
     | "discovery"
-    | "evaluation"
     | "sg2"
+    | "evaluation"
     | "selection"
     | "sg3"
     | "recos"
+    | "sg4"
     | "export";
 
 // Progress strip step definitions
@@ -43,11 +48,12 @@ const PROGRESS_STEPS = [
     { id: "business-need", label: "BN", fullLabel: "Business Need" },
     { id: "SG-1", label: "SG-1", fullLabel: "SG-1", isGate: true },
     { id: "discovery", label: "Disc", fullLabel: "Discovery" },
-    { id: "evaluation", label: "Eval", fullLabel: "Evaluation" },
     { id: "SG-2", label: "SG-2", fullLabel: "SG-2", isGate: true },
+    { id: "evaluation", label: "Eval", fullLabel: "Evaluation" },
     { id: "selection", label: "Sel", fullLabel: "Selection" },
     { id: "SG-3", label: "SG-3", fullLabel: "SG-3", isGate: true },
     { id: "recos", label: "Rec", fullLabel: "Recos" },
+    { id: "SG-4", label: "SG-4", fullLabel: "SG-4", isGate: true },
 ];
 
 // Gate data for the GateModal
@@ -59,30 +65,39 @@ const gateData = {
         checklist: [
             "Business need sufficiently formalized",
             "No confirmed duplicate detected",
-            "Discovery results reviewed across all 4 sources",
+            "Discovery results reviewed across all sources",
         ],
         color: "blue" as const,
     },
     "SG-2": {
         id: "SG-2",
         title: "Passage en Qualification",
-        subtitle: "Confirm top-ranked solutions and tech tracks for qualification phase.",
+        subtitle: "Confirm discovery outputs and selected solutions before proceeding to evaluation.",
         checklist: [
-            "Top-ranked solutions identified",
-            "Technology tracks confirmed",
-            "Scoring grid completed",
-            "AI ranking reviewed and accepted",
+            "DXC Internal Catalog reviewed",
+            "At least one solution selected",
+            "Discovery results confirmed",
         ],
         color: "emerald" as const,
     },
     "SG-3": {
         id: "SG-3",
-        title: "Validation finale avant livraison",
-        subtitle: "Final validation before generating delivery outputs.",
+        title: "Validation avant livraison",
+        subtitle: "Confirm evaluation and selection results before proceeding to delivery.",
         checklist: [
             "Exactly 1 solution selected",
+            "Scoring grid completed",
             "Business need fully addressed",
+        ],
+        color: "emerald" as const,
+    },
+    "SG-4": {
+        id: "SG-4",
+        title: "Validation finale — Export",
+        subtitle: "Final validation before generating delivery documents.",
+        checklist: [
             "Recommendation document reviewed",
+            "Solution confirmed for delivery",
         ],
         color: "orange" as const,
     },
@@ -91,7 +106,7 @@ const gateData = {
 type GateKey = keyof typeof gateData;
 
 // ---------------------------------------------------------------------------
-// Props (backwards compatible with existing pages)
+// Props
 // ---------------------------------------------------------------------------
 
 interface WorkflowBarProps {
@@ -117,27 +132,27 @@ function deriveStatusState(status: Status | undefined) {
         completedSteps.add("business-need");
         currentActiveGate = "SG-1";
     } else if (status === "submitted") {
-        // SG-1 passed — user is in Discovery/Evaluation phase
+        // SG-1 passed — Discovery is the active step (not yet done)
         completedSteps.add("business-need");
         completedGates.add("SG-1");
-        currentActiveGate = "SG-2";
+        currentActiveGate = "";   // No gate active; discovery is the active step
     } else if (status === "in_qualification") {
+        // Discovery done — SG-2 is the active gate to validate
         completedSteps.add("business-need");
         completedGates.add("SG-1");
         completedSteps.add("discovery");
-        completedSteps.add("evaluation");
-        completedGates.add("SG-2");
-        currentActiveGate = "SG-3";
+        currentActiveGate = "SG-2";
     } else if (status === "delivery") {
+        // SG-3 passed — user is in Delivery phase, SG-4 is the active gate
         completedSteps.add("business-need");
         completedGates.add("SG-1");
         completedSteps.add("discovery");
-        completedSteps.add("evaluation");
         completedGates.add("SG-2");
+        completedSteps.add("evaluation");
         completedSteps.add("selection");
         completedGates.add("SG-3");
         completedSteps.add("recos");
-        currentActiveGate = "";
+        currentActiveGate = "SG-4";
     } else if (status === "abandoned") {
         currentActiveGate = "";
     }
@@ -150,13 +165,89 @@ const STEP_TO_STRIP_ID: Record<PipelineStep, string> = {
     business_need: "business-need",
     sg1:           "SG-1",
     discovery:     "discovery",
-    evaluation:    "evaluation",
     sg2:           "SG-2",
+    evaluation:    "evaluation",
     selection:     "selection",
     sg3:           "SG-3",
     recos:         "recos",
-    export:        "recos",
+    sg4:           "SG-4",
+    export:        "SG-4",
 };
+
+// ---------------------------------------------------------------------------
+// SG-2 Solution Recap (reads from localStorage)
+// ---------------------------------------------------------------------------
+
+function SolutionRecap() {
+    const [solutions, setSolutions] = useState<{ id: string; name: string; relevance: number }[]>([]);
+
+    useEffect(() => {
+        const saved = localStorage.getItem("ipm_selected_solutions");
+        if (saved) {
+            try { setSolutions(JSON.parse(saved)); } catch { /* malformed — ignore */ }
+        }
+    }, []);
+
+    return (
+        <div style={{ padding: "0 24px", marginBottom: 8 }}>
+            <span style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                fontWeight: 500,
+                color: "var(--wf-muted-fg)",
+                display: "block",
+                marginBottom: 12,
+            }}>
+                Selected Solutions
+            </span>
+            {solutions.length === 0 ? (
+                <div style={{
+                    fontSize: 12,
+                    color: "var(--wf-muted-fg)",
+                    opacity: 0.6,
+                    padding: "8px 12px",
+                    background: "var(--wf-muted)",
+                    borderRadius: 6,
+                    border: "1px solid var(--wf-border)",
+                }}>
+                    No solutions confirmed yet
+                </div>
+            ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {solutions.map((s) => (
+                        <motion.div
+                            key={s.id}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                                background: "var(--wf-muted)",
+                                border: "1px solid var(--wf-border)",
+                            }}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.15 }}
+                        >
+                            <span style={{ fontSize: 13, color: "var(--wf-fg)" }}>{s.name}</span>
+                            <span style={{
+                                fontFamily: "var(--font-mono)",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: s.relevance >= 80 ? "var(--wf-qualification)" : s.relevance >= 65 ? "var(--wf-sourcing)" : "var(--wf-muted-fg)",
+                            }}>
+                                {s.relevance}%
+                            </span>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -187,15 +278,23 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
         if (!currentActiveGate) return 0;
         if (currentActiveGate === "SG-1") return 1;
         if (currentActiveGate === "SG-2" || currentActiveGate === "SG-3") return 2;
-        return 3;
+        if (currentActiveGate === "SG-4") return 3;
+        return 0;
     }, [currentActiveGate]);
 
     const v = isMobile;
-    const phase1Done = completedGates.has("SG-1");
+    const phase1Done = completedSteps.has("discovery");
     const phase2Done = completedGates.has("SG-3");
 
     const handleGo = useCallback(async () => {
         if (!activeGate || !ipmId) return;
+
+        // SG-4 is frontend-only — no backend status change
+        if (activeGate === "SG-4") {
+            toast.success("SG-4 Validated", { description: "Export documents are now available." });
+            setActiveGate(null);
+            return;
+        }
 
         let nextStatus: Status = "submitted";
         if (activeGate === "SG-1") nextStatus = "submitted";
@@ -424,11 +523,12 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                 alignItems: "center",
                                 gap: isMobile ? 4 : 12,
                             }}>
+                                {/* Phase 1: Sourcing — BN, SG-1, Discovery */}
                                 <PhaseContainer
                                     title="Sourcing"
                                     color="blue"
                                     isCollapsed={phase1Done && activePhase > 1}
-                                    completedCount={2}
+                                    completedCount={[completedSteps.has("business-need"), completedSteps.has("discovery")].filter(Boolean).length}
                                     totalCount={2}
                                 >
                                     <WorkflowNode label="Business Need" index="01" color="blue" isCompleted={completedSteps.has("business-need")} delay={0.1} />
@@ -438,39 +538,32 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                     <WorkflowNode label="Discovery" index="02" color="blue" isActive={currentStep === "discovery" && !completedSteps.has("discovery")} isCompleted={completedSteps.has("discovery")} delay={0.4} />
                                 </PhaseContainer>
 
-                                {v ? (
-                                    <Connector delay={0.5} vertical={true} />
-                                ) : (
-                                    <div style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
-                                        <Connector delay={0.5} />
-                                        <div style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            width: 18,
-                                            height: 64,
-                                            position: "relative",
-                                        }}>
-                                            <span style={{
-                                                writingMode: "vertical-rl",
-                                                textOrientation: "mixed",
-                                                transform: "rotate(180deg)",
-                                                fontFamily: "var(--font-mono)",
-                                                fontSize: 9,
-                                                letterSpacing: "0.18em",
-                                                textTransform: "uppercase",
-                                                color: "var(--wf-muted-fg)",
-                                                opacity: 0.45,
-                                                userSelect: "none",
-                                                whiteSpace: "nowrap",
-                                            }}>
-                                                Solutions
-                                            </span>
-                                        </div>
-                                        <Connector delay={0.55} />
-                                    </div>
-                                )}
+                                <Connector delay={0.45} vertical={v} />
 
+                                {/* SG-2: Entry gate into Qualification (outside phase box) */}
+                                <StageGate label="SG-2" color="emerald" isActive={currentActiveGate === "SG-2"} isCompleted={completedGates.has("SG-2")} delay={0.5} onClick={isInteractive ? () => setActiveGate("SG-2") : undefined} />
+
+                                <Connector delay={0.55} vertical={v} />
+
+                                {/* Solutions: display-only vertical label — no circle, no logic */}
+                                <span style={{
+                                    writingMode: "vertical-rl",
+                                    textOrientation: "mixed",
+                                    fontFamily: "var(--font-mono)",
+                                    fontSize: 10,
+                                    letterSpacing: "0.12em",
+                                    textTransform: "uppercase",
+                                    fontWeight: 500,
+                                    color: "var(--wf-muted-fg)",
+                                    opacity: 0.5,
+                                    userSelect: "none",
+                                }}>
+                                    Solutions
+                                </span>
+
+                                <Connector delay={0.58} vertical={v} />
+
+                                {/* Phase 2: Qualification — Evaluation, Selection */}
                                 <PhaseContainer
                                     title="Qualification"
                                     color="emerald"
@@ -478,19 +571,19 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                     completedCount={[completedSteps.has("evaluation"), completedSteps.has("selection")].filter(Boolean).length}
                                     totalCount={2}
                                 >
-                                    <WorkflowNode label="Evaluation" index="03" color="emerald" isActive={completedGates.has("SG-1") && !completedSteps.has("evaluation")} isCompleted={completedSteps.has("evaluation")} delay={0.6} />
+                                    <WorkflowNode label="Evaluation" index="04" color="emerald" isActive={completedGates.has("SG-2") && !completedSteps.has("evaluation")} isCompleted={completedSteps.has("evaluation")} delay={0.6} />
                                     <Connector delay={0.65} vertical={v} />
-                                    <StageGate label="SG-2" color="emerald" isActive={currentActiveGate === "SG-2"} isCompleted={completedGates.has("SG-2")} delay={0.7} onClick={isInteractive ? () => setActiveGate("SG-2") : undefined} />
-                                    <Connector delay={0.75} vertical={v} />
-                                    <WorkflowNode label="Selection" index="04" color="emerald" isActive={completedGates.has("SG-2") && !completedSteps.has("selection")} isCompleted={completedSteps.has("selection")} delay={0.8} />
+                                    <WorkflowNode label="Selection" index="05" color="emerald" isActive={completedSteps.has("evaluation") && !completedSteps.has("selection")} isCompleted={completedSteps.has("selection")} delay={0.7} />
                                 </PhaseContainer>
+
+                                <Connector delay={0.75} vertical={v} />
+
+                                {/* SG-3: Exit gate from Qualification (outside phase box) */}
+                                <StageGate label="SG-3" color="emerald" isActive={currentActiveGate === "SG-3"} isCompleted={completedGates.has("SG-3")} delay={0.8} onClick={isInteractive ? () => setActiveGate("SG-3") : undefined} />
 
                                 <Connector delay={0.85} vertical={v} />
 
-                                <StageGate label="SG-3" color="orange" isActive={currentActiveGate === "SG-3"} isCompleted={completedGates.has("SG-3")} delay={0.9} onClick={isInteractive ? () => setActiveGate("SG-3") : undefined} />
-
-                                <Connector delay={0.95} vertical={v} />
-
+                                {/* Phase 3: Delivery — Recos, SG-4, PDF/DOC */}
                                 <PhaseContainer
                                     title="Delivery"
                                     color="orange"
@@ -498,7 +591,9 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                     completedCount={completedSteps.has("recos") ? 1 : 0}
                                     totalCount={1}
                                 >
-                                    <WorkflowNode label="Recos" index="05" color="orange" isActive={completedGates.has("SG-3") && !completedSteps.has("recos")} isCompleted={completedSteps.has("recos")} delay={1.0} />
+                                    <WorkflowNode label="Recos" index="06" color="orange" isActive={completedGates.has("SG-3") && !completedSteps.has("recos")} isCompleted={completedSteps.has("recos")} delay={0.9} />
+                                    <Connector delay={0.95} vertical={v} />
+                                    <StageGate label="SG-4" color="orange" isActive={currentActiveGate === "SG-4"} isCompleted={completedGates.has("SG-4")} delay={1.0} onClick={isInteractive ? () => setActiveGate("SG-4") : undefined} />
                                     <Connector delay={1.05} vertical={v} />
                                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                         {["PDF", "DOCX"].map((fmt) => (
@@ -560,6 +655,7 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                     onGo={handleGo}
                     onRework={handleRework}
                     onStop={handleStop}
+                    headerContent={activeGate === "SG-2" ? <SolutionRecap /> : undefined}
                 />
             )}
         </>

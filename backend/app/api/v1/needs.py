@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import llm_client
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.embedding_client import embed_text_async
 from app.models.business_need import BusinessNeed
@@ -17,10 +19,15 @@ from app.schemas.business_need import (
     AnalyzeRequest,
     AnalyzeResponse,
     BusinessNeedResponse,
+    CatalogProduct,
+    CatalogSearchResponse,
     CreateNeedRequest,
+    GapAnalysisRequest,
+    GapAnalysisResponse,
     Tags,
     UpdateStatusRequest,
 )
+from app.core.chroma import get_collection
 from app.services import embedding_service, id_service, nlp_service
 
 logger = logging.getLogger(__name__)
@@ -64,7 +71,7 @@ async def create_need(
         # 1. Run LLM tagging + embedding generation concurrently (both are the slow parts)
         (tags, _suggestions), embedding = await asyncio.gather(
             nlp_service.analyze_pitch(request.pitch),
-            embed_text_async(request.pitch),
+            embed_text_async(request.pitch, is_query=False),
         )
 
         # 2. Generate unique ID
@@ -217,4 +224,239 @@ async def update_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update business need status.",
+        ) from exc
+
+
+@router.post("/{need_id}/catalog-search", response_model=CatalogSearchResponse)
+async def catalog_search(
+    need_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> CatalogSearchResponse:
+    """Return the top 5 DXC catalog products most similar to the business need."""
+    try:
+        result = await db.execute(
+            select(BusinessNeed).where(BusinessNeed.id == need_id)
+        )
+        need = result.scalar_one_or_none()
+
+        if need is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Business need '{need_id}' not found.",
+            )
+
+        # Build query text from pitch + AI-derived fields
+        tags: dict = need.tags or {}
+
+        OBJECTIF_LABELS = {
+            "cost_reduction": "cost reduction efficiency savings",
+            "cx_improvement": "customer experience improvement satisfaction",
+            "risk_mitigation": "risk management compliance security",
+            "market_opportunity": "market growth revenue expansion",
+            "productivity": "productivity automation efficiency",
+            "innovation": "innovation digital transformation modernization",
+        }
+        objectif_str = OBJECTIF_LABELS.get(tags.get("objectif", ""), "")
+
+        domains_list: list = tags.get("domaine") or []
+        domains_str = " ".join(domains_list)
+
+        impact_parts = tags.get("impact") or []
+        impact_str = (
+            " ".join(impact_parts)
+            if isinstance(impact_parts, list)
+            else str(impact_parts)
+        )
+
+        query_text = " ".join(
+            filter(None, [need.pitch, objectif_str, domains_str, impact_str])
+        )
+        query_text = query_text[:600].strip()
+
+        # Embed — is_query=True applies the BGE retrieval prefix
+        embedding = await embed_text_async(query_text, is_query=True)
+
+        # Query dxc_catalog
+        collection = get_collection("dxc_catalog")
+        raw = collection.query(
+            query_embeddings=[embedding],
+            n_results=5,
+            include=["metadatas", "documents", "distances"],
+        )
+
+        ids = raw["ids"][0]
+        metadatas = raw["metadatas"][0]
+        documents = raw["documents"][0]
+        distances = raw["distances"][0]
+
+        def _meta_val(meta: dict, key: str) -> str | None:
+            """Return None for empty-string sentinel values stored in ChromaDB."""
+            v = meta.get(key)
+            return None if v == "" else v
+
+        products: list[CatalogProduct] = []
+        for pid, meta, doc, dist in zip(ids, metadatas, documents, distances):
+            score = round(max(0.0, min(1.0, 1.0 - dist)), 2)
+            features_raw = meta.get("features")
+            features: list[str] = (
+                [f.strip() for f in features_raw.split(",") if f.strip()]
+                if features_raw
+                else []
+            )
+            products.append(CatalogProduct(
+                id=pid,
+                name=meta.get("name", ""),
+                description=doc,
+                ipm_stage=_meta_val(meta, "ipm_stage"),
+                internal_external=_meta_val(meta, "internal_external"),
+                industry_focus=_meta_val(meta, "industry_focus"),
+                ai_type=_meta_val(meta, "ai_type"),
+                ai_criticality=_meta_val(meta, "ai_criticality"),
+                maturity_level=_meta_val(meta, "maturity_level"),
+                value_layer=_meta_val(meta, "value_layer"),
+                monetization_potential=_meta_val(meta, "monetization_potential"),
+                business_impact=_meta_val(meta, "business_impact"),
+                lead=_meta_val(meta, "lead"),
+                features=features,
+                relevance_score=score,
+            ))
+
+        products.sort(key=lambda p: p.relevance_score, reverse=True)
+
+        return CatalogSearchResponse(results=products, total=len(products))
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to run catalog search for %s: %s", need_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Catalog search failed. Please try again.",
+        ) from exc
+
+
+@router.post("/{need_id}/gap-analysis", response_model=GapAnalysisResponse)
+async def gap_analysis(
+    need_id: str,
+    body: GapAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+) -> GapAnalysisResponse:
+    """Run a structured gap analysis between a business need and a selected DXC solution."""
+    try:
+        result = await db.execute(
+            select(BusinessNeed).where(BusinessNeed.id == need_id)
+        )
+        need = result.scalar_one_or_none()
+
+        if need is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Business need '{need_id}' not found.",
+            )
+
+        # Extract solution fields from request body
+        sol = body.selected_solution
+        name: str = sol.get("name", "Unknown")
+        description: str = sol.get("description", "") or ""
+        features_raw = sol.get("features", [])
+        features: list[str] = features_raw if isinstance(features_raw, list) else []
+        business_impact: str = sol.get("business_impact", "") or ""
+        maturity_level: str = sol.get("maturity_level", "") or ""
+
+        # Extract need context from JSONB tags
+        need_tags: dict = need.tags or {}
+        objectif: str = need_tags.get("objectif", "") or "Not specified"
+        impact_list: list = need_tags.get("impact", []) or []
+        impact: str = ", ".join(impact_list) if impact_list else "Not specified"
+        domains_list: list = need_tags.get("domaine", []) or []
+        domains: str = ", ".join(domains_list) if domains_list else "Not specified"
+
+        variables: dict[str, str] = {
+            "pitch": need.pitch,
+            "objectif": objectif,
+            "impact": impact,
+            "domains": domains,
+            "solution_name": name,
+            "solution_description": description,
+            "solution_features": ", ".join(features) if features else "Not listed",
+            "solution_business_impact": business_impact or "Not specified",
+            "solution_maturity": maturity_level or "Not specified",
+        }
+
+        # Langfuse trace — create before LLM call, update after; silent if disabled
+        _lf_trace = None
+        try:
+            from langfuse import Langfuse
+            _lf = Langfuse(
+                public_key=settings.langfuse_public_key,
+                secret_key=settings.langfuse_secret_key,
+                host=settings.langfuse_host,
+            )
+            _lf_trace = _lf.trace(
+                name="gap-analysis",
+                input={
+                    "need_id": need_id,
+                    "need_pitch": need.pitch,
+                    "solution_name": name,
+                    "solution_maturity": maturity_level,
+                },
+                metadata={
+                    "endpoint": "gap-analysis",
+                    "need_id": need_id,
+                    "solution_id": sol.get("id", "unknown"),
+                    "solution_name": name,
+                },
+            )
+        except Exception:
+            pass
+
+        # LLM call — replicates nlp_service.py pattern
+        llm_response = await llm_client.complete(
+            prompt_name="gap-analysis",
+            variables=variables,
+            response_format="json",
+        )
+
+        # Parse
+        try:
+            parsed = llm_client.parse_json_response(llm_response)
+        except Exception as parse_exc:
+            logger.error("Gap analysis JSON parse failed for %s: %s", need_id, parse_exc)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="LLM returned invalid JSON for gap analysis",
+            ) from parse_exc
+
+        features_matching: list[str] = parsed.get("features_matching") or []
+        features_missing: list[str] = parsed.get("features_missing") or []
+        resources_needed: list[str] = parsed.get("resources_needed") or []
+        fit_score: int = max(1, min(10, int(parsed.get("fit_score", 5))))
+
+        # Update Langfuse trace with parsed output
+        try:
+            if _lf_trace:
+                _lf_trace.update(output={
+                    "fit_score": fit_score,
+                    "features_matching_count": len(features_matching),
+                    "features_missing_count": len(features_missing),
+                    "resources_needed_count": len(resources_needed),
+                })
+        except Exception:
+            pass
+
+        return GapAnalysisResponse(
+            features_matching=features_matching,
+            features_missing=features_missing,
+            resources_needed=resources_needed,
+            fit_score=fit_score,
+            solution_name=name,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Gap analysis failed for %s: %s", need_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Gap analysis failed. Please try again.",
         ) from exc

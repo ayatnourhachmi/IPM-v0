@@ -23,6 +23,17 @@ function EvaluationPageContent() {
     const ipmId = searchParams.get("id") || undefined;
     const [scores, setScores] = useState(STUB_SELECTED.map(s => ({ ...s })));
     const [showGate, setShowGate] = useState(false);
+    const [sg2State, setSg2State] = useState<{ cardStates: Record<string, string>; totalSelected: number }>({
+        cardStates: {},
+        totalSelected: 0,
+    });
+
+    useEffect(() => {
+        const saved = localStorage.getItem("ipm_sg2_state");
+        if (saved) {
+            try { setSg2State(JSON.parse(saved)); } catch { /* malformed — ignore */ }
+        }
+    }, []);
 
     useEffect(() => {
         const canvas = document.getElementById("bg-canvas") as HTMLCanvasElement | null;
@@ -48,7 +59,7 @@ function EvaluationPageContent() {
     return (
         <div className="app-shell">
             <canvas id="bg-canvas" style={{ position: "fixed", top: 0, left: 0, zIndex: -1 }} />
-            <WorkflowBar currentStep="evaluation" status="submitted" ipmId={ipmId} />
+            <WorkflowBar currentStep="evaluation" status="solutions_reviewed" ipmId={ipmId} />
 
             <div className="app-content">
                 <div className="glow-divider" />
@@ -56,7 +67,7 @@ function EvaluationPageContent() {
                     <div className="stub-page-header">
                         <h1 className="stub-page-title">Evaluation / Comparaison</h1>
                         <button className="action-btn primary" onClick={() => setShowGate(true)}>
-                            Proceed to SG-2 →
+                            Proceed to SG-3 →
                         </button>
                     </div>
 
@@ -95,11 +106,12 @@ function EvaluationPageContent() {
 
             {showGate && (
                 <StageGate
-                    gateId="SG-2"
+                    gateId="SG-3"
                     title="Passage en Qualification"
                     checklist={[
-                        { label: "Top-ranked solutions identified?", met: true },
-                        { label: "Tech tracks confirmed?", met: true },
+                        { label: "DXC Internal Catalog reviewed", met: sg2State.cardStates["dxc_catalog"] === "done" },
+                        { label: "Tech Signals reviewed", met: sg2State.cardStates["tech_signals"] === "done" },
+                        { label: "At least one solution selected", met: sg2State.totalSelected >= 1 },
                     ]}
                     onGo={() => {
                         router.push(`/selection?id=${ipmId}`);

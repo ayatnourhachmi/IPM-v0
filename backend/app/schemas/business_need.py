@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -69,7 +69,7 @@ class CreateNeedRequest(BaseModel):
 class UpdateStatusRequest(BaseModel):
     """Request body for PATCH /needs/{id}/status."""
 
-    status: Literal["submitted", "rework", "abandoned", "in_qualification", "delivery"]
+    status: Literal["submitted", "solutions_reviewed", "rework", "abandoned", "in_qualification", "delivery"]
     note: str | None = Field(default=None, description="Required when status=rework")
 
     @field_validator("note")
@@ -100,10 +100,61 @@ class BusinessNeedResponse(BaseModel):
     pitch: str
     horizon: Literal["court_terme", "moyen_terme", "long_terme"]
     tags: Tags
-    status: Literal["draft", "submitted", "rework", "abandoned", "in_qualification", "delivery"]
+    status: Literal["draft", "submitted", "solutions_reviewed", "rework", "abandoned", "in_qualification", "delivery"]
     rework_note: str | None = None
     duplicate_matches: list[DuplicateMatch] = []
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Catalog search schemas
+# ---------------------------------------------------------------------------
+
+class CatalogProduct(BaseModel):
+    """A DXC product returned by the catalog similarity search."""
+
+    id: str
+    name: str
+    description: str
+    ipm_stage: Optional[str] = None
+    internal_external: Optional[str] = None
+    industry_focus: Optional[str] = None
+    ai_type: Optional[str] = None
+    ai_criticality: Optional[str] = None
+    maturity_level: Optional[str] = None
+    value_layer: Optional[str] = None
+    monetization_potential: Optional[str] = None
+    business_impact: Optional[str] = None
+    lead: Optional[str] = None
+    features: list[str] = []
+    relevance_score: float
+
+
+class CatalogSearchResponse(BaseModel):
+    """Response for the catalog-search endpoint."""
+
+    results: list[CatalogProduct]
+    total: int
+
+
+# ---------------------------------------------------------------------------
+# Gap analysis schemas
+# ---------------------------------------------------------------------------
+
+class GapAnalysisRequest(BaseModel):
+    """Request body for the gap-analysis endpoint."""
+
+    selected_solution: dict
+
+
+class GapAnalysisResponse(BaseModel):
+    """Response for the gap-analysis endpoint."""
+
+    features_matching: list[str]
+    features_missing: list[str]
+    resources_needed: list[str]
+    fit_score: int = Field(ge=1, le=10)
+    solution_name: str

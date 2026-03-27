@@ -1,24 +1,24 @@
 "use client";
 
 /**
- * Sg1ValidationPanel — Right-side slide panel for SG-1 gate decision.
- * Matches GateModal design: card-style checklist, filled summary, note textarea.
+ * Sg2ValidationPanel — Right-side slide panel for SG-2 gate decision.
+ * Mirrors Sg1ValidationPanel layout and animation exactly.
+ * Shows selected solutions from localStorage, plus a manual validation checkbox.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface Sg1ValidationPanelProps {
+interface Solution {
+    id: string;
+    name: string;
+    relevance: number;
+}
+
+interface Sg2ValidationPanelProps {
     open: boolean;
-    isProcessing: boolean;
-    pitch: string;
-    horizonLabel: string;
-    objectif: string;
-    domains: string;
-    impact: string;
-    hasDuplicates?: boolean;
     onGo: () => void;
-    onRework: (note?: string) => void;
+    onRework: () => void;
     onAbandon: () => void;
 }
 
@@ -43,42 +43,30 @@ const CheckIcon = ({ met }: { met: boolean }) => (
     </div>
 );
 
-const SummaryRow = ({ label, value }: { label: string; value: string }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <span style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: "0.07em",
-            textTransform: "uppercase",
-            color: "var(--wf-muted-fg)",
-        }}>
-            {label}
-        </span>
-        <span style={{ fontSize: 13, color: "var(--wf-fg)", lineHeight: 1.5 }}>
-            {value || <span style={{ opacity: 0.4, fontStyle: "italic" }}>Not specified</span>}
-        </span>
-    </div>
-);
-
-export function Sg1ValidationPanel({
-    open,
-    isProcessing,
-    pitch,
-    horizonLabel,
-    objectif,
-    domains,
-    impact,
-    hasDuplicates = false,
-    onGo,
-    onRework,
-    onAbandon,
-}: Sg1ValidationPanelProps) {
+export function Sg2ValidationPanel({ open, onGo, onRework, onAbandon }: Sg2ValidationPanelProps) {
+    const [solutions, setSolutions] = useState<Solution[]>([]);
+    const [reviewed, setReviewed] = useState(false);
     const [mode, setMode] = useState<"idle" | "rework" | "stop">("idle");
     const [noteText, setNoteText] = useState("");
 
+    useEffect(() => {
+        if (open) {
+            const saved = localStorage.getItem("ipm_selected_solutions");
+            if (saved) {
+                try { setSolutions(JSON.parse(saved)); } catch { /* malformed — ignore */ }
+            }
+            setReviewed(false);
+            setMode("idle");
+            setNoteText("");
+        }
+    }, [open]);
+
+    const hasSolutions = solutions.length > 0;
+    const allMet = hasSolutions && reviewed;
+
     const handleConfirm = () => {
         if (!noteText.trim()) return;
-        if (mode === "rework") onRework(noteText.trim());
+        if (mode === "rework") onRework();
         if (mode === "stop") onAbandon();
         setMode("idle");
         setNoteText("");
@@ -88,16 +76,6 @@ export function Sg1ValidationPanel({
         setMode("idle");
         setNoteText("");
     };
-
-    const checklist: { label: string; met: boolean }[] = [
-        {
-            label: "Business need fully analyzed",
-            met: pitch.trim().length > 20 && objectif.trim() !== "" && domains.trim() !== "" && impact.trim() !== "",
-        },
-        { label: "No duplicate detected", met: !hasDuplicates },
-    ];
-
-    const allMet = checklist.every((c) => c.met);
 
     return (
         <AnimatePresence>
@@ -115,7 +93,7 @@ export function Sg1ValidationPanel({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={() => !isProcessing && onRework()}
+                        onClick={onRework}
                     />
 
                     {/* Panel */}
@@ -148,10 +126,10 @@ export function Sg1ValidationPanel({
                                     letterSpacing: "0.08em",
                                     textTransform: "uppercase",
                                 }}>
-                                    SG-1
+                                    SG-2
                                 </span>
                                 <button
-                                    onClick={() => !isProcessing && onRework()}
+                                    onClick={onRework}
                                     style={{
                                         background: "none",
                                         border: "none",
@@ -166,17 +144,17 @@ export function Sg1ValidationPanel({
                                 </button>
                             </div>
                             <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--wf-fg)", margin: 0 }}>
-                                Validation of Business Need
+                                Validation of Selected Solutions
                             </h2>
                             <p style={{ fontSize: 13, color: "var(--wf-muted-fg)", marginTop: 4, marginBottom: 0, lineHeight: 1.5 }}>
-                                Review and confirm the business need before proceeding to discovery.
+                                Review the solutions selected during Discovery before proceeding to Qualification.
                             </p>
                         </div>
 
                         {/* Scrollable body */}
                         <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
 
-                            {/* SUMMARY */}
+                            {/* SELECTED SOLUTIONS */}
                             <div>
                                 <span style={{
                                     fontFamily: "var(--font-mono)",
@@ -188,25 +166,72 @@ export function Sg1ValidationPanel({
                                     display: "block",
                                     marginBottom: 14,
                                 }}>
-                                    Summary
+                                    Selected Solutions
                                 </span>
-                                <div style={{
-                                    background: "var(--wf-muted)",
-                                    border: "1px solid var(--wf-border)",
-                                    borderRadius: 8,
-                                    padding: 16,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 14,
-                                }}>
-                                    <SummaryRow label="Pitch" value={pitch} />
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                                        <SummaryRow label="Time Horizon" value={horizonLabel} />
-                                        <SummaryRow label="Objective" value={objectif} />
+                                {solutions.length === 0 ? (
+                                    <div style={{
+                                        background: "var(--wf-muted)",
+                                        border: "1px solid var(--wf-border)",
+                                        borderRadius: 8,
+                                        padding: 16,
+                                        fontSize: 13,
+                                        color: "var(--wf-muted-fg)",
+                                        fontStyle: "italic",
+                                    }}>
+                                        No solutions confirmed yet
                                     </div>
-                                    <SummaryRow label="Domains" value={domains} />
-                                    <SummaryRow label="Impact" value={impact} />
-                                </div>
+                                ) : (
+                                    <div style={{
+                                        background: "var(--wf-muted)",
+                                        border: "1px solid var(--wf-border)",
+                                        borderRadius: 8,
+                                        overflow: "hidden",
+                                    }}>
+                                        {solutions.map((s, i) => (
+                                            <motion.div
+                                                key={s.id}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "space-between",
+                                                    padding: "10px 16px",
+                                                    borderBottom: i < solutions.length - 1 ? "1px solid var(--wf-border)" : "none",
+                                                    gap: 12,
+                                                }}
+                                                initial={{ opacity: 0, x: 20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: 0.15 + i * 0.06 }}
+                                            >
+                                                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--wf-fg)" }}>{s.name}</span>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                                                    <span style={{
+                                                        fontFamily: "var(--font-mono)",
+                                                        fontSize: 11,
+                                                        color: s.relevance >= 80
+                                                            ? "var(--wf-qualification)"
+                                                            : s.relevance >= 65
+                                                            ? "var(--wf-sourcing)"
+                                                            : "var(--wf-muted-fg)",
+                                                    }}>
+                                                        {s.relevance}%
+                                                    </span>
+                                                    <span style={{
+                                                        fontSize: 10,
+                                                        fontFamily: "var(--font-mono)",
+                                                        color: "var(--wf-muted-fg)",
+                                                        background: "rgba(99,91,255,0.1)",
+                                                        border: "1px solid rgba(99,91,255,0.2)",
+                                                        padding: "2px 8px",
+                                                        borderRadius: 4,
+                                                        letterSpacing: "0.04em",
+                                                    }}>
+                                                        DXC Catalog
+                                                    </span>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* CHECKLIST */}
@@ -224,28 +249,51 @@ export function Sg1ValidationPanel({
                                     Checklist
                                 </span>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                    {checklist.map((item, i) => (
-                                        <motion.div
-                                            key={i}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "flex-start",
-                                                gap: 12,
-                                                padding: 12,
-                                                borderRadius: 6,
-                                                background: "var(--wf-muted)",
-                                                border: `1px solid ${item.met ? "rgba(34,197,94,0.2)" : "var(--wf-border)"}`,
-                                            }}
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.3 + i * 0.08 }}
-                                        >
-                                            <CheckIcon met={item.met} />
-                                            <span style={{ fontSize: 13, color: "var(--wf-fg)", lineHeight: 1.5, opacity: item.met ? 1 : 0.6 }}>
-                                                {item.label}
-                                            </span>
-                                        </motion.div>
-                                    ))}
+
+                                    {/* Auto-checked: at least one solution */}
+                                    <motion.div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 12,
+                                            padding: 12,
+                                            borderRadius: 6,
+                                            background: "var(--wf-muted)",
+                                            border: `1px solid ${hasSolutions ? "rgba(34,197,94,0.2)" : "var(--wf-border)"}`,
+                                        }}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                    >
+                                        <CheckIcon met={hasSolutions} />
+                                        <span style={{ fontSize: 13, color: "var(--wf-fg)", lineHeight: 1.5, opacity: hasSolutions ? 1 : 0.6 }}>
+                                            At least one solution selected
+                                        </span>
+                                    </motion.div>
+
+                                    {/* Manual checkbox: reviewed */}
+                                    <motion.div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 12,
+                                            padding: 12,
+                                            borderRadius: 6,
+                                            background: "var(--wf-muted)",
+                                            border: `1px solid ${reviewed ? "rgba(34,197,94,0.2)" : "var(--wf-border)"}`,
+                                            cursor: "pointer",
+                                            userSelect: "none",
+                                        }}
+                                        onClick={() => setReviewed(r => !r)}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.38 }}
+                                    >
+                                        <CheckIcon met={reviewed} />
+                                        <span style={{ fontSize: 13, color: "var(--wf-fg)", lineHeight: 1.5, opacity: reviewed ? 1 : 0.6 }}>
+                                            Solutions reviewed and validated
+                                        </span>
+                                    </motion.div>
                                 </div>
                             </div>
 
@@ -269,10 +317,10 @@ export function Sg1ValidationPanel({
                                     </span>
                                     <textarea
                                         value={noteText}
-                                        onChange={(e) => setNoteText(e.target.value)}
+                                        onChange={e => setNoteText(e.target.value)}
                                         placeholder={mode === "rework"
                                             ? "Explain what needs to be reworked…"
-                                            : "Explain why this business need is being abandoned…"
+                                            : "Explain why this IPM is being abandoned…"
                                         }
                                         autoFocus
                                         style={{
@@ -306,25 +354,25 @@ export function Sg1ValidationPanel({
                                 <>
                                     <button
                                         onClick={onGo}
-                                        disabled={isProcessing || !allMet}
+                                        disabled={!allMet}
                                         style={{
                                             width: "100%",
                                             padding: "11px 16px",
                                             borderRadius: 6,
-                                            background: (isProcessing || !allMet) ? "rgba(34,197,94,0.4)" : "#22c55e",
+                                            background: !allMet ? "rgba(34,197,94,0.4)" : "#22c55e",
                                             color: "#000",
                                             fontWeight: 700,
                                             fontSize: 14,
                                             border: "none",
-                                            cursor: (isProcessing || !allMet) ? "not-allowed" : "pointer",
+                                            cursor: !allMet ? "not-allowed" : "pointer",
                                             fontFamily: "var(--font-mono)",
                                             letterSpacing: "0.06em",
                                             transition: "filter 0.15s",
                                         }}
-                                        onMouseOver={(e) => { if (!isProcessing && allMet) e.currentTarget.style.filter = "brightness(1.1)"; }}
-                                        onMouseOut={(e) => (e.currentTarget.style.filter = "")}
+                                        onMouseOver={e => { if (allMet) e.currentTarget.style.filter = "brightness(1.1)"; }}
+                                        onMouseOut={e => (e.currentTarget.style.filter = "")}
                                     >
-                                        {isProcessing ? "Processing…" : "GO"}
+                                        GO
                                     </button>
                                     {!allMet && (
                                         <span style={{
@@ -338,7 +386,6 @@ export function Sg1ValidationPanel({
                                     )}
                                     <button
                                         onClick={() => setMode("rework")}
-                                        disabled={isProcessing}
                                         style={{
                                             width: "100%",
                                             padding: "11px 16px",
@@ -347,19 +394,18 @@ export function Sg1ValidationPanel({
                                             color: "var(--wf-muted-fg)",
                                             fontSize: 14,
                                             border: "1px solid var(--wf-border)",
-                                            cursor: isProcessing ? "not-allowed" : "pointer",
+                                            cursor: "pointer",
                                             fontFamily: "var(--font-mono)",
                                             letterSpacing: "0.06em",
                                             transition: "all 0.15s",
                                         }}
-                                        onMouseOver={(e) => { if (!isProcessing) { e.currentTarget.style.color = "var(--wf-fg)"; e.currentTarget.style.borderColor = "var(--wf-muted-fg)"; } }}
-                                        onMouseOut={(e) => { e.currentTarget.style.color = "var(--wf-muted-fg)"; e.currentTarget.style.borderColor = "var(--wf-border)"; }}
+                                        onMouseOver={e => { e.currentTarget.style.color = "var(--wf-fg)"; e.currentTarget.style.borderColor = "var(--wf-muted-fg)"; }}
+                                        onMouseOut={e => { e.currentTarget.style.color = "var(--wf-muted-fg)"; e.currentTarget.style.borderColor = "var(--wf-border)"; }}
                                     >
                                         REWORK
                                     </button>
                                     <button
                                         onClick={() => setMode("stop")}
-                                        disabled={isProcessing}
                                         style={{
                                             width: "100%",
                                             padding: "11px 16px",
@@ -368,13 +414,13 @@ export function Sg1ValidationPanel({
                                             color: "var(--wf-destructive)",
                                             fontSize: 14,
                                             border: "none",
-                                            cursor: isProcessing ? "not-allowed" : "pointer",
+                                            cursor: "pointer",
                                             fontFamily: "var(--font-mono)",
                                             letterSpacing: "0.06em",
                                             transition: "background 0.15s",
                                         }}
-                                        onMouseOver={(e) => { if (!isProcessing) e.currentTarget.style.background = "hsla(0,72%,51%,0.1)"; }}
-                                        onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                                        onMouseOver={e => (e.currentTarget.style.background = "hsla(0,72%,51%,0.1)")}
+                                        onMouseOut={e => (e.currentTarget.style.background = "transparent")}
                                     >
                                         STOP / ABANDON
                                     </button>

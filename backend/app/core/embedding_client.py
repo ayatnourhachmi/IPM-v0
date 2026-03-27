@@ -12,6 +12,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Prefix required on the QUERY side when using BGE retrieval models.
+# Documents (catalog, pitches) are embedded without a prefix.
+_BGE_QUERY_PREFIX = (
+    "Represent this sentence for searching relevant passages: "
+)
+
 # Lazy-loaded model cache for local embeddings
 _local_model = None
 
@@ -26,16 +32,23 @@ def _get_local_model():
     return _local_model
 
 
-async def embed_text_async(text: str) -> list[float]:
+async def embed_text_async(text: str, is_query: bool = False) -> list[float]:
     """Generate an embedding vector, offloaded to a thread so it doesn't block the event loop."""
     import asyncio
-    return await asyncio.to_thread(embed_text, text)
+    return await asyncio.to_thread(embed_text, text, is_query)
 
 
-def embed_text(text: str) -> list[float]:
-    """Generate an embedding vector for a single text string."""
+def embed_text(text: str, is_query: bool = False) -> list[float]:
+    """Generate an embedding vector for a single text string.
+
+    Pass is_query=True when embedding a search query against a BGE model so the
+    required retrieval prefix is applied.  Documents (catalog entries, pitches)
+    should always use is_query=False (the default).
+    """
     if settings.embedding_provider == "local":
         model = _get_local_model()
+        if is_query and "bge" in settings.embedding_model_local.lower():
+            text = _BGE_QUERY_PREFIX + text
         embedding = model.encode(text, normalize_embeddings=True)
         return embedding.tolist()
     elif settings.embedding_provider == "openai":
