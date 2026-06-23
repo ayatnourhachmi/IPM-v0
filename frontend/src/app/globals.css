@@ -6729,6 +6729,12 @@ body:has(.qualification-page) {
   color: #755e18;
 }
 
+.qualification-alert.success {
+  border: 1px solid rgba(36, 151, 97, 0.24);
+  background: rgba(36, 151, 97, 0.1);
+  color: #16613f;
+}
+
 .qualification-actions {
   display: grid;
   gap: 8px;
@@ -11077,6 +11083,12 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   border: 1px solid rgba(255, 79, 66, 0.24) !important;
   background: rgba(255, 79, 66, 0.08) !important;
   color: #7a3434 !important;
+}
+
+.ipm-sourcing-redesign .qualification-alert.success {
+  border: 1px solid rgba(36, 151, 97, 0.24) !important;
+  background: rgba(36, 151, 97, 0.1) !important;
+  color: #16613f !important;
 }
 
 .ipm-sourcing-redesign .decision-board .ipm-outline-action,

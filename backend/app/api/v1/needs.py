@@ -15,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import llm_client
 from app.core.config import settings
+from app.core.email_client import send_email_with_attachment, smtp_configured
 from app.core.langfuse_tracking import new_langfuse_client, safe_flush
+from app.core.minio_client import store_exported_dossier
 from app.core.recommendation_limits import (
     MAX_KPIS_RECOMMENDATIONS,
     MAX_ORGANIZATIONAL_RECOMMENDATIONS,
@@ -32,6 +34,8 @@ from app.schemas.business_need import (
     BusinessNeedResponse,
     CatalogProduct,
     CatalogSearchResponse,
+    EmailDossierRequest,
+    EmailDossierResponse,
     EvaluationScores,
     ExpertiseTeamEstimateRequest,
     ExpertiseTeamEstimateResponse,
@@ -87,7 +91,7 @@ router = APIRouter(prefix="/needs", tags=["needs"])
 # ---------------------------------------------------------------------------
 
 def _tag_scalar(tags: dict, key: str, default: str = "") -> str:
-    """Extract the string value from a scalar tag field (objectif / origine)."""
+    """Extract the string value from a scalar tag field (objective / origin)."""
     raw = tags.get(key, default)
     if isinstance(raw, dict):
         return raw.get("value", default)
@@ -95,7 +99,7 @@ def _tag_scalar(tags: dict, key: str, default: str = "") -> str:
 
 
 def _tag_list(tags: dict, key: str) -> list[str]:
-    """Extract a flat list of string values from a multi-value tag field (domaine / impact)."""
+    """Extract a flat list of string values from a multi-value tag field (domain / impact)."""
     raw = tags.get(key) or []
     if not isinstance(raw, list):
         return []
@@ -110,47 +114,13 @@ def _tag_list(tags: dict, key: str) -> list[str]:
     return result
 
 
-def _format_constraints(constraints: dict | list | str | None) -> str:
-    """Flatten persisted need constraints for gap-analysis prompts."""
-    if constraints is None:
-        return "None specified"
-    if isinstance(constraints, str):
-        stripped = constraints.strip()
-        return stripped or "None specified"
-    if isinstance(constraints, list):
-        items = [str(item).strip() for item in constraints if str(item).strip()]
-        return ", ".join(items) if items else "None specified"
-    if isinstance(constraints, dict):
-        parts: list[str] = []
-        for key, value in constraints.items():
-            if value is None or value == "":
-                continue
-            label = str(key).replace("_", " ").strip().title()
-            if isinstance(value, list):
-                joined = ", ".join(str(item).strip() for item in value if str(item).strip())
-                if joined:
-                    parts.append(f"{label}: {joined}")
-            elif isinstance(value, dict):
-                nested = ", ".join(
-                    f"{nested_key}={nested_value}"
-                    for nested_key, nested_value in value.items()
-                    if nested_value not in (None, "")
-                )
-                if nested:
-                    parts.append(f"{label}: {nested}")
-            else:
-                parts.append(f"{label}: {value}")
-        return "; ".join(parts) if parts else "None specified"
-    return str(constraints)
-
-
 def _default_tags() -> Tags:
     """Return a minimal valid Tags object used when a need has no tags stored."""
     return Tags(
-        objectif={"value": "cost_reduction", "confidence": "low"},
-        domaine=[{"value": "Autre", "confidence": "low"}],
+        objective={"value": "cost_reduction", "confidence": "low"},
+        domain=[{"value": "Other", "confidence": "low"}],
         impact=[{"value": "Cost", "confidence": "low"}],
-        origine={"value": "probleme_operationnel", "confidence": "low"},
+        origin={"value": "operational_problem", "confidence": "low"},
     )
 
 
@@ -158,7 +128,8 @@ def _tags_from_db(raw: dict | None) -> Tags:
     """Load persisted tags safely — repair unknown enums/lists before constructing ``Tags``."""
     if not raw:
         return _default_tags()
-    merged = {**_default_tags().model_dump(), **raw}
+    cleaned_raw = sanitize_pitch_tag_dict(raw)
+    merged = {**_default_tags().model_dump(), **cleaned_raw}
     cleaned = sanitize_pitch_tag_dict(merged)
     try:
         return Tags(**cleaned)
@@ -172,16 +143,16 @@ def _domains_match(solution_domain: str, need_domains: list[str]) -> bool:
 
     Matching is case-insensitive and bidirectional substring so that e.g.
     'Data Engineering' matches need domain 'Data', and 'Cloud' matches 'Cloud Infra'.
-    'Autre' on either side is treated as a wildcard (always matches).
+    'Other' on either side is treated as a wildcard (always matches).
     """
     if not solution_domain:
         return True  # unknown domain → do not penalise
     sol = solution_domain.strip().lower()
-    if sol == "autre":
+    if sol == "other":
         return True
     for nd in need_domains:
         nd_l = nd.strip().lower()
-        if nd_l == "autre":
+        if nd_l == "other":
             return True
         if sol in nd_l or nd_l in sol:
             return True
@@ -451,10 +422,10 @@ def _confidence_from_tags(tags: Tags) -> dict | None:
     """Flatten tag confidences for the ``business_needs.confidence`` JSONB column."""
     d = tags.model_dump()
     out: dict[str, object] = {}
-    obj = d.get("objectif")
+    obj = d.get("objective")
     if isinstance(obj, dict) and obj.get("confidence") is not None:
-        out["objectif"] = obj["confidence"]
-    for key in ("domaine", "impact"):
+        out["objective"] = obj["confidence"]
+    for key in ("domain", "impact"):
         items = d.get(key) or []
         if isinstance(items, list) and items:
             stripped: list[dict[str, object]] = []
@@ -463,9 +434,9 @@ def _confidence_from_tags(tags: Tags) -> dict | None:
                     stripped.append({"value": it.get("value"), "confidence": it["confidence"]})
             if stripped:
                 out[key] = stripped
-    orig = d.get("origine")
+    orig = d.get("origin")
     if isinstance(orig, dict) and orig.get("confidence") is not None:
-        out["origine"] = orig["confidence"]
+        out["origin"] = orig["confidence"]
     return out if out else None
 
 
@@ -827,7 +798,7 @@ async def catalog_search(
         # Build query text from pitch + AI-derived fields
         tags: dict = need.tags or {}
 
-        OBJECTIF_LABELS = {
+        OBJECTIVE_LABELS = {
             "cost_reduction": "cost reduction efficiency savings",
             "cx_improvement": "customer experience improvement satisfaction",
             "risk_mitigation": "risk management compliance security",
@@ -835,9 +806,9 @@ async def catalog_search(
             "productivity": "productivity automation efficiency",
             "innovation": "innovation digital transformation modernization",
         }
-        objectif_str = OBJECTIF_LABELS.get(_tag_scalar(tags, "objectif"), "")
+        objective_str = OBJECTIVE_LABELS.get(_tag_scalar(tags, "objective"), "")
 
-        domains_list: list[str] = _tag_list(tags, "domaine")
+        domains_list: list[str] = _tag_list(tags, "domain")
         domains_str = " ".join(domains_list)
 
         impact_parts: list[str] = _tag_list(tags, "impact")
@@ -845,13 +816,13 @@ async def catalog_search(
 
         match_profile = build_need_match_profile(
             pitch=need.pitch,
-            objectif_str=objectif_str,
+            objective_str=objective_str,
             domains_list=domains_list,
             impact_parts=impact_parts,
         )
 
         query_text = " ".join(
-            filter(None, [need.pitch, objectif_str, domains_str, impact_str])
+            filter(None, [need.pitch, objective_str, domains_str, impact_str])
         )
         query_text = query_text[:600].strip()
 
@@ -962,10 +933,10 @@ async def gap_analysis(
 
         # Extract need context from JSONB tags
         need_tags: dict = need.tags or {}
-        objectif: str = _tag_scalar(need_tags, "objectif") or "Not specified"
+        objective: str = _tag_scalar(need_tags, "objective") or "Not specified"
         impact_list: list[str] = _tag_list(need_tags, "impact")
         impact: str = ", ".join(impact_list) if impact_list else "Not specified"
-        domains_list: list[str] = _tag_list(need_tags, "domaine")
+        domains_list: list[str] = _tag_list(need_tags, "domain")
         domains: str = ", ".join(domains_list) if domains_list else "Not specified"
 
         # Context compression — drop features when solution domain doesn't match need
@@ -975,10 +946,9 @@ async def gap_analysis(
 
         variables: dict[str, str] = {
             "pitch": need.pitch,
-            "objectif": objectif,
+            "objective": objective,
             "impact": impact,
             "domains": domains,
-            "constraints": _format_constraints(need.constraints),
             "solution_name": name,
             "solution_description": description,
             "solution_features": ", ".join(features) if features else "Not listed",
@@ -1070,12 +1040,12 @@ async def gap_analysis(
 
         ai_scores = parsed.get("evaluation_scores") if isinstance(parsed, dict) else None
         if isinstance(ai_scores, dict):
-            maturite_eval = _score_value(ai_scores.get("maturite"), 3)
-            maturite_just = str(ai_scores.get("maturite_justification") or "")
+            maturity_eval = _score_value(ai_scores.get("maturity"), 3)
+            maturity_just = str(ai_scores.get("maturity_justification") or "")
             expertise_eval = _score_value(ai_scores.get("expertise"), 3)
             expertise_just = str(ai_scores.get("expertise_justification") or "")
-            duree_eval     = _score_value(ai_scores.get("duree"), 3)
-            duree_just     = str(ai_scores.get("duree_justification") or "")
+            duration_eval     = _score_value(ai_scores.get("duration"), 3)
+            duration_just     = str(ai_scores.get("duration_justification") or "")
             impact_eval    = _score_value(ai_scores.get("impact"), fit_score / 2)
             impact_just    = str(ai_scores.get("impact_justification") or "")
         else:
@@ -1084,7 +1054,7 @@ async def gap_analysis(
             resources = len(resources_needed)
 
             # Maturité from catalog maturity column only (maturity scoring engine)
-            maturite_eval = maturity_score_or_neutral(maturity_level, neutral=3)
+            maturity_eval = maturity_score_or_neutral(maturity_level, neutral=3)
 
             # Expertise: derived from DXC catalog capabilities for this solution domain.
             # Count how many capability entries exist for the solution's domain; if
@@ -1113,32 +1083,32 @@ async def gap_analysis(
                 expertise_just = ""
 
             # Durée: fewer gaps and required resources → faster delivery
-            duree_eval     = _clamp_score_5(5 - (resources * 0.5) - (missing * 0.3))
+            duration_eval     = _clamp_score_5(5 - (resources * 0.5) - (missing * 0.3))
             # Impact: direct proxy from fit_score
             impact_eval    = _clamp_score_5(fit_score / 2)
 
-            maturite_just = duree_just = impact_just = ""
+            maturity_just = duration_just = impact_just = ""
 
-        # Catalog-only maturité: overwrite LLM / heuristic when label maps cleanly
+        # Catalog-only maturity: overwrite LLM / heuristic when label maps cleanly
         calibration_steps: list[dict] = []
-        _catalog_maturite = maturity_score(maturity_level)
-        if _catalog_maturite is not None:
-            if maturite_eval != _catalog_maturite:
+        _catalog_maturity = maturity_score(maturity_level)
+        if _catalog_maturity is not None:
+            if maturity_eval != _catalog_maturity:
                 logger.info(
-                    "Maturity scoring engine: maturité %s → %s from catalog maturity %r",
-                    maturite_eval,
-                    _catalog_maturite,
+                    "Maturity scoring engine: maturity %s → %s from catalog maturity %r",
+                    maturity_eval,
+                    _catalog_maturity,
                     maturity_level,
                 )
                 calibration_steps.append(
                     {
                         "step": "catalog_maturity_alignment",
                         "catalog_maturity_label": maturity_level,
-                        "maturite_before": maturite_eval,
-                        "maturite_after": _catalog_maturite,
+                        "maturity_before": maturity_eval,
+                        "maturity_after": _catalog_maturity,
                     },
                 )
-            maturite_eval = _catalog_maturite
+            maturity_eval = _catalog_maturity
 
         # ── Post-LLM score calibration rules ──────────────────────────────────
         fit_score_before_cap = fit_score
@@ -1174,9 +1144,9 @@ async def gap_analysis(
                         "features_missing_count": len(features_missing),
                         "resources_needed_count": len(resources_needed),
                         "evaluation_ivi": {
-                            "maturite": maturite_eval,
+                            "maturity": maturity_eval,
                             "expertise": expertise_eval,
-                            "duree": duree_eval,
+                            "duration": duration_eval,
                             "impact": impact_eval,
                         },
                     },
@@ -1187,27 +1157,27 @@ async def gap_analysis(
             pass
 
         evaluation = EvaluationScores(
-            maturite=maturite_eval,
-            maturite_justification=maturite_just,
+            maturity=maturity_eval,
+            maturity_justification=maturity_just,
             expertise=expertise_eval,
             expertise_justification=expertise_just,
-            duree=duree_eval,
-            duree_justification=duree_just,
+            duration=duration_eval,
+            duration_justification=duration_just,
             impact=impact_eval,
             impact_justification=impact_just,
         )
         need.risks = [r.model_dump() for r in risks]
         need.justifications = {
-            "maturite_justification": maturite_just,
+            "maturity_justification": maturity_just,
             "expertise_justification": expertise_just,
-            "duree_justification": duree_just,
+            "duration_justification": duration_just,
             "impact_justification": impact_just,
             "fit_justification": fit_justification,
         }
         need.ivi_scores = {
-            "maturite": maturite_eval,
+            "maturity": maturity_eval,
             "expertise": expertise_eval,
-            "duree": duree_eval,
+            "duration": duration_eval,
             "impact": impact_eval,
         }
         await db.flush()
@@ -1259,10 +1229,10 @@ async def generate_recommendations(
             )
 
         need_tags: dict = need.tags or {}
-        objectif: str = _tag_scalar(need_tags, "objectif") or "Not specified"
+        objective: str = _tag_scalar(need_tags, "objective") or "Not specified"
         impact_list: list[str] = _tag_list(need_tags, "impact")
         impact: str = ", ".join(impact_list) if impact_list else "Not specified"
-        domains_list: list[str] = _tag_list(need_tags, "domaine")
+        domains_list: list[str] = _tag_list(need_tags, "domain")
         domains: str = ", ".join(domains_list) if domains_list else "Not specified"
 
         def _as_list(value: object) -> list[str]:
@@ -1342,7 +1312,7 @@ async def generate_recommendations(
 
             variables: dict[str, str] = {
                 "pitch": need.pitch,
-                "objectif": objectif,
+                "objective": objective,
                 "impact": impact,
                 "domains": domains,
                 "solution_name": solution_name,
@@ -1357,13 +1327,13 @@ async def generate_recommendations(
                 "resources_needed": ", ".join(resources_needed) if resources_needed else "Not specified",
                 "fit_score": str(fit_clamped),
                 "fit_justification": fit_justification or "Not specified",
-                "eval_maturite": str(max(1, min(5, _safe_int(evaluation_scores.get("maturite"), 3)))),
+                "eval_maturity": str(max(1, min(5, _safe_int(evaluation_scores.get("maturity"), 3)))),
                 "eval_expertise": str(max(1, min(5, _safe_int(evaluation_scores.get("expertise"), 3)))),
-                "eval_duree":     str(max(1, min(5, _safe_int(evaluation_scores.get("duree"), 3)))),
+                "eval_duration":     str(max(1, min(5, _safe_int(evaluation_scores.get("duration"), 3)))),
                 "eval_impact":    str(max(1, min(5, _safe_int(evaluation_scores.get("impact"), 3)))),
-                "eval_maturite_justification":  str(evaluation_scores.get("maturite_justification") or ""),
+                "eval_maturity_justification":  str(evaluation_scores.get("maturity_justification") or ""),
                 "eval_expertise_justification": str(evaluation_scores.get("expertise_justification") or ""),
-                "eval_duree_justification":     str(evaluation_scores.get("duree_justification") or ""),
+                "eval_duration_justification":     str(evaluation_scores.get("duration_justification") or ""),
                 "eval_impact_justification":    str(evaluation_scores.get("impact_justification") or ""),
                 "recommendation_mode": rec_mode,
                 "mode_instructions": mode_instructions,
@@ -1610,6 +1580,14 @@ async def export_pdf(
         )
 
         filename = f"{need_id.lower()}-recommendations.pdf"
+        object_name = await asyncio.to_thread(
+            store_exported_dossier,
+            need_id=need_id,
+            filename=filename,
+            content=pdf_bytes,
+            content_type="application/pdf",
+        )
+        logger.info("Stored PDF export for %s in MinIO: %s", need_id, object_name)
         return StreamingResponse(
             BytesIO(pdf_bytes),
             media_type="application/pdf",
@@ -1649,6 +1627,14 @@ async def export_docx(
         )
 
         filename = f"{need_id.lower()}-recommendations.docx"
+        object_name = await asyncio.to_thread(
+            store_exported_dossier,
+            need_id=need_id,
+            filename=filename,
+            content=docx_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        logger.info("Stored DOCX export for %s in MinIO: %s", need_id, object_name)
         return StreamingResponse(
             BytesIO(docx_bytes),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -1661,4 +1647,93 @@ async def export_docx(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate DOCX report.",
+        ) from exc
+
+
+@router.post("/{need_id}/export/email", response_model=EmailDossierResponse)
+async def email_exported_dossier(
+    need_id: str,
+    body: EmailDossierRequest,
+    db: AsyncSession = Depends(get_db),
+) -> EmailDossierResponse:
+    """Generate a PoC dossier and send it as an email attachment."""
+    if not smtp_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SMTP email delivery is not configured on the backend.",
+        )
+
+    try:
+        result = await db.execute(select(BusinessNeed).where(BusinessNeed.id == need_id))
+        need = result.scalar_one_or_none()
+        if need is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Business need '{need_id}' not found.",
+            )
+
+        export_kwargs = {
+            "need_id": need_id,
+            "pitch": need.pitch,
+            "recommendations": [item.model_dump() for item in body.recommendations],
+            "delivery_solutions": [item.model_dump() for item in body.delivery_solutions],
+        }
+
+        if body.format == "docx":
+            content = build_docx_report(**export_kwargs)
+            filename = f"{need_id.lower()}-recommendations.docx"
+            content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        else:
+            content = build_pdf_report(**export_kwargs)
+            filename = f"{need_id.lower()}-recommendations.pdf"
+            content_type = "application/pdf"
+
+        object_name = await asyncio.to_thread(
+            store_exported_dossier,
+            need_id=need_id,
+            filename=filename,
+            content=content,
+            content_type=content_type,
+        )
+
+        solution_names = ", ".join(item.solution_name for item in body.recommendations)
+        subject = body.subject or f"PoC preparation dossier - {need_id}"
+        message = body.message or (
+            "Hello,\n\n"
+            f"Please find attached the PoC preparation dossier for {need_id}.\n\n"
+            f"Included solution bundle(s): {solution_names or 'Not specified'}.\n\n"
+            "Regards,\nIPM Flow"
+        )
+
+        await asyncio.to_thread(
+            send_email_with_attachment,
+            to_email=body.to_email,
+            subject=subject,
+            body=message,
+            attachment_filename=filename,
+            attachment_content=content,
+            attachment_content_type=content_type,
+        )
+
+        logger.info(
+            "Sent %s export for %s to %s; MinIO object=%s",
+            body.format.upper(),
+            need_id,
+            body.to_email,
+            object_name,
+        )
+        return EmailDossierResponse(
+            sent=True,
+            recipient=body.to_email,
+            filename=filename,
+            object_name=object_name,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Email export failed for %s: %s", need_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send dossier email. Please verify SMTP settings and try again.",
         ) from exc

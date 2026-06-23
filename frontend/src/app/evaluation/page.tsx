@@ -28,12 +28,12 @@ type GapAnalysisSnapshot = {
     fit_score: number;
     fit_justification?: string;
     evaluation_scores?: {
-        maturite: number;
-        maturite_justification: string;
+        maturity: number;
+        maturity_justification: string;
         expertise: number;
         expertise_justification: string;
-        duree: number;
-        duree_justification: string;
+        duration: number;
+        duration_justification: string;
         impact: number;
         impact_justification: string;
     };
@@ -114,9 +114,9 @@ function buildJustificationsFromGap(solution: SelectedSolution): EvaluationScore
 
     const fromAi: EvaluationScoreJustifications = {
         fit: aiJustification(es.impact_justification) ?? undefined,
-        feasibility: aiJustification(es.maturite_justification) ?? undefined,
+        feasibility: aiJustification(es.maturity_justification) ?? undefined,
         innovation: aiJustification(es.expertise_justification) ?? undefined,
-        cost: aiJustification(es.duree_justification) ?? undefined,
+        cost: aiJustification(es.duration_justification) ?? undefined,
     };
 
     const fallback = derivedFromGap();
@@ -138,15 +138,15 @@ function buildScoresFromGap(solution: SelectedSolution): { scores: EvaluationSco
     if (
         es &&
         typeof es.impact === "number" &&
-        typeof es.maturite === "number" &&
-        typeof es.duree === "number" &&
+        typeof es.maturity === "number" &&
+        typeof es.duration === "number" &&
         typeof es.expertise === "number"
     ) {
         return {
             scores: {
                 fit: clampScore(es.impact),
-                feasibility: clampScore(es.maturite),
-                cost: clampScore(es.duree),
+                feasibility: clampScore(es.maturity),
+                cost: clampScore(es.duration),
                 innovation: clampScore(es.expertise),
             },
             source: "gap-analysis",

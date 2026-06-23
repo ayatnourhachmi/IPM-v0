@@ -20,11 +20,11 @@ def _domains_match(solution_domain: str, need_domains: list[str]) -> bool:
     if not solution_domain:
         return True
     sol = solution_domain.strip().lower()
-    if sol == "autre":
+    if sol == "other":
         return True
     for nd in need_domains:
         nd_l = nd.strip().lower()
-        if nd_l == "autre":
+        if nd_l == "other":
             return True
         if sol in nd_l or nd_l in sol:
             return True

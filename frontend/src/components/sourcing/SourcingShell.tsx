@@ -18,8 +18,8 @@ import {
     type SourcingWorkflowStepId,
 } from "@/components/sourcing/SourcingWorkflowProgress";
 import { IpmFlowShell } from "@/components/sourcing/IpmFlowShell";
-import type { BusinessNeed, CatalogProduct, DuplicateMatch, GapAnalysisResponse, Horizon, Objectif, Origine, Status } from "@/lib/types";
-import { formatImpactLabel, HORIZON_LABELS, OBJECTIF_LABELS, ORIGINE_LABELS } from "@/lib/types";
+import type { BusinessNeed, CatalogProduct, DuplicateMatch, GapAnalysisResponse, Horizon, Objective, Origin, Status } from "@/lib/types";
+import { formatImpactLabel, HORIZON_LABELS, OBJECTIVE_LABELS, ORIGIN_LABELS } from "@/lib/types";
 
 const GENERIC_ALIGNMENT: SolutionAlignment = {
     covered: [
@@ -39,7 +39,7 @@ const GENERIC_ALIGNMENT: SolutionAlignment = {
 };
 
 function formatDomainLabel(value: string) {
-    return value.trim().toUpperCase() === "IA" ? "AI" : value.trim();
+    return value.trim().toUpperCase() === "AI" ? "AI" : value.trim();
 }
 
 function reverseLookup<T extends string>(labels: Record<T, string>, label: string) {
@@ -186,15 +186,15 @@ function isPastDiscoveryStatus(status: Status | undefined) {
 
 function applyNeedSummary(
     need: BusinessNeed,
-    setSummaryObjectif: (value: string) => void,
+    setSummaryObjective: (value: string) => void,
     setSummaryDomains: (value: string) => void,
     setSummaryImpact: (value: string) => void,
     setSummaryOrigin: (value: string) => void
 ) {
-    setSummaryObjectif(need.tags?.objectif?.value ? OBJECTIF_LABELS[need.tags.objectif.value] : "");
+    setSummaryObjective(need.tags?.objective?.value ? OBJECTIVE_LABELS[need.tags.objective.value] : "");
     setSummaryDomains(
-        need.tags?.domaine && need.tags.domaine.length > 0
-            ? need.tags.domaine.map((domain) => formatDomainLabel(domain.value)).join(", ")
+        need.tags?.domain && need.tags.domain.length > 0
+            ? need.tags.domain.map((domain) => formatDomainLabel(domain.value)).join(", ")
             : ""
     );
     setSummaryImpact(
@@ -202,7 +202,7 @@ function applyNeedSummary(
             ? need.tags.impact.map((impact) => formatImpactLabel(impact.value)).join(", ")
             : ""
     );
-    setSummaryOrigin(need.tags?.origine?.value ? ORIGINE_LABELS[need.tags.origine.value] : "");
+    setSummaryOrigin(need.tags?.origin?.value ? ORIGIN_LABELS[need.tags.origin.value] : "");
 }
 
 export function SourcingShell({
@@ -222,7 +222,7 @@ export function SourcingShell({
     const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
     const [showDuplicates, setShowDuplicates] = useState(false);
 
-    const [summaryObjectif, setSummaryObjectif] = useState("");
+    const [summaryObjective, setSummaryObjective] = useState("");
     const [summaryDomains, setSummaryDomains] = useState("");
     const [summaryImpact, setSummaryImpact] = useState("");
     const [summaryOrigin, setSummaryOrigin] = useState("");
@@ -262,7 +262,7 @@ export function SourcingShell({
                 setCurrentNeed(need);
                 setPitch(need.pitch ?? "");
                 setHorizon(need.horizon ?? null);
-                applyNeedSummary(need, setSummaryObjectif, setSummaryDomains, setSummaryImpact, setSummaryOrigin);
+                applyNeedSummary(need, setSummaryObjective, setSummaryDomains, setSummaryImpact, setSummaryOrigin);
 
                 setCurrentSourcingState((prev) => {
                     const restoredSourcingState = sourcingStateFromNeedStatus(need.status, prev);
@@ -287,24 +287,24 @@ export function SourcingShell({
 
     useEffect(() => {
         if (!tags) {
-            setSummaryObjectif("");
+            setSummaryObjective("");
             setSummaryDomains("");
             setSummaryImpact("");
             setSummaryOrigin("");
             return;
         }
 
-        if (tags.objectif?.value) {
-            setSummaryObjectif(OBJECTIF_LABELS[tags.objectif.value]);
+        if (tags.objective?.value) {
+            setSummaryObjective(OBJECTIVE_LABELS[tags.objective.value]);
         }
-        if (tags.domaine && tags.domaine.length > 0) {
-            setSummaryDomains(tags.domaine.map((domain) => formatDomainLabel(domain.value)).join(", "));
+        if (tags.domain && tags.domain.length > 0) {
+            setSummaryDomains(tags.domain.map((domain) => formatDomainLabel(domain.value)).join(", "));
         }
         if (tags.impact && tags.impact.length > 0) {
             setSummaryImpact(tags.impact.map((impact) => formatImpactLabel(impact.value)).join(", "));
         }
-        if (tags.origine?.value) {
-            setSummaryOrigin(ORIGINE_LABELS[tags.origine.value]);
+        if (tags.origin?.value) {
+            setSummaryOrigin(ORIGIN_LABELS[tags.origin.value]);
         }
     }, [tags]);
 
@@ -318,10 +318,10 @@ export function SourcingShell({
         createNeedPromiseRef.current = (async () => {
             const domainValues = splitSummaryValues(summaryDomains);
             const impactValues = splitSummaryValues(summaryImpact);
-            const objectiveValue = reverseLookup<Objectif>(OBJECTIF_LABELS, summaryObjectif);
-            const originValue = reverseLookup<Origine>(ORIGINE_LABELS, summaryOrigin);
+            const objectiveValue = reverseLookup<Objective>(OBJECTIVE_LABELS, summaryObjective);
+            const originValue = reverseLookup<Origin>(ORIGIN_LABELS, summaryOrigin);
             const confidenceByDomain = new Map(
-                tags?.domaine.map((domain) => [formatDomainLabel(domain.value).trim().toLowerCase(), domain.confidence])
+                tags?.domain.map((domain) => [formatDomainLabel(domain.value).trim().toLowerCase(), domain.confidence])
             );
             const confidenceByImpact = new Map(
                 tags?.impact.flatMap((impact) => [
@@ -332,30 +332,30 @@ export function SourcingShell({
             const precomputedTags = !isTagging && !analyzeError && tags
                 ? {
                     ...tags,
-                    objectif: objectiveValue
+                    objective: objectiveValue
                         ? {
                             value: objectiveValue,
-                            confidence: summaryObjectif === (tags.objectif?.value ? OBJECTIF_LABELS[tags.objectif.value] : "") ? tags.objectif.confidence : "low",
+                            confidence: summaryObjective === (tags.objective?.value ? OBJECTIVE_LABELS[tags.objective.value] : "") ? tags.objective.confidence : "low",
                         }
-                        : tags.objectif,
-                    domaine: domainValues.length > 0
+                        : tags.objective,
+                    domain: domainValues.length > 0
                         ? domainValues.map((domain) => ({
                             value: domain,
                             confidence: confidenceByDomain.get(domain.toLowerCase()) ?? "low",
                         }))
-                        : tags.domaine,
+                        : tags.domain,
                     impact: impactValues.length > 0
                         ? impactValues.map((impact) => ({
                             value: impact,
                             confidence: confidenceByImpact.get(impact.toLowerCase()) ?? "low",
                         }))
                         : tags.impact,
-                    origine: originValue
+                    origin: originValue
                         ? {
                             value: originValue,
-                            confidence: summaryOrigin === (tags.origine?.value ? ORIGINE_LABELS[tags.origine.value] : "") ? tags.origine.confidence : "low",
+                            confidence: summaryOrigin === (tags.origin?.value ? ORIGIN_LABELS[tags.origin.value] : "") ? tags.origin.confidence : "low",
                         }
-                        : tags.origine,
+                        : tags.origin,
                 }
                 : undefined;
 
@@ -581,7 +581,7 @@ export function SourcingShell({
                     title="Validation of Business Need"
                     subtitle="Review and confirm the business need before proceeding to discovery"
                     summaryItems={[
-                        { label: "OBJECTIVE", value: summaryObjectif || "Pending" },
+                        { label: "OBJECTIVE", value: summaryObjective || "Pending" },
                         { label: "DOMAINS", value: summaryDomains || "Pending" },
                         { label: "IMPACT", value: summaryImpact || "Pending" },
                         { label: "ORIGIN", value: summaryOrigin || "Pending" },
@@ -590,7 +590,7 @@ export function SourcingShell({
                     checklistItems={[
                         {
                             label: "Business need fully analyzed",
-                            completed: horizon !== null && pitch.trim().length > 20 && summaryObjectif.trim() !== "" && summaryDomains.trim() !== "" && summaryImpact.trim() !== "" && summaryOrigin.trim() !== "",
+                            completed: horizon !== null && pitch.trim().length > 20 && summaryObjective.trim() !== "" && summaryDomains.trim() !== "" && summaryImpact.trim() !== "" && summaryOrigin.trim() !== "",
                             onClick: handleAnalyzedStatusClick,
                         },
                         {
@@ -687,11 +687,11 @@ export function SourcingShell({
                 <SummaryPanel
                     tags={tags}
                     isLoading={isTagging || isSuggesting}
-                    objectiveLabel={summaryObjectif}
+                    objectiveLabel={summaryObjective}
                     domainsLabel={summaryDomains}
                     impactLabel={summaryImpact}
                     originLabel={summaryOrigin}
-                    onObjectiveChange={setSummaryObjectif}
+                    onObjectiveChange={setSummaryObjective}
                     onDomainsChange={setSummaryDomains}
                     onImpactChange={setSummaryImpact}
                     onOriginChange={setSummaryOrigin}

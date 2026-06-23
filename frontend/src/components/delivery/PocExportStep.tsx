@@ -6,13 +6,19 @@ export function PocExportStep({
     recommendations,
     exportSelectedIds,
     exportRecommendationsCount,
-    exportError,
+    exportMessage,
+    exportMessageKind,
     isExportingPdf,
     isExportingDocx,
+    isSendingEmail,
     canExport,
+    emailRecipient,
+    emailFormat,
     onToggleExport,
     onSelectAllExport,
     onClearExport,
+    onEmailRecipientChange,
+    onEmailFormatChange,
     onPdfExport,
     onDocxExport,
     onSendEmail,
@@ -21,13 +27,19 @@ export function PocExportStep({
     recommendations: SolutionRecommendations[];
     exportSelectedIds: Set<string>;
     exportRecommendationsCount: number;
-    exportError: string | null;
+    exportMessage: string | null;
+    exportMessageKind: "success" | "error";
     isExportingPdf: boolean;
     isExportingDocx: boolean;
+    isSendingEmail: boolean;
     canExport: boolean;
+    emailRecipient: string;
+    emailFormat: "pdf" | "docx";
     onToggleExport: (solutionId: string) => void;
     onSelectAllExport: () => void;
     onClearExport: () => void;
+    onEmailRecipientChange: (email: string) => void;
+    onEmailFormatChange: (format: "pdf" | "docx") => void;
     onPdfExport: () => void;
     onDocxExport: () => void;
     onSendEmail: () => void;
@@ -100,7 +112,11 @@ export function PocExportStep({
                 </div>
 
                 <div className="delivery-main">
-                    {exportError && <div className="qualification-alert danger">{exportError}</div>}
+                    {exportMessage && (
+                        <div className={`qualification-alert ${exportMessageKind === "error" ? "danger" : "success"}`}>
+                            {exportMessage}
+                        </div>
+                    )}
 
                     <div className="poc-export-grid">
                         <div className="qualification-card poc-export-card">
@@ -165,16 +181,46 @@ export function PocExportStep({
                             </div>
                             <p className="poc-export-note">
                                 {canExport
-                                    ? "Opens your email client with the export attached or linked."
+                                    ? "Sends the selected PoC dossier as an email attachment."
                                     : "Select at least one bundle before sending"}
                             </p>
+                            <label className="qualification-section-heading" htmlFor="delivery-email-recipient">
+                                Recipient
+                            </label>
+                            <input
+                                id="delivery-email-recipient"
+                                type="email"
+                                className="ipm-input"
+                                placeholder="stakeholder@example.com"
+                                value={emailRecipient}
+                                onChange={(event) => onEmailRecipientChange(event.target.value)}
+                                disabled={isSendingEmail}
+                            />
+                            <div className="delivery-export-toolbar-actions">
+                                <button
+                                    type="button"
+                                    className={`ipm-outline-action delivery-toolbar-btn${emailFormat === "pdf" ? " active" : ""}`}
+                                    onClick={() => onEmailFormatChange("pdf")}
+                                    disabled={isSendingEmail}
+                                >
+                                    PDF
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`ipm-outline-action delivery-toolbar-btn${emailFormat === "docx" ? " active" : ""}`}
+                                    onClick={() => onEmailFormatChange("docx")}
+                                    disabled={isSendingEmail}
+                                >
+                                    DOCX
+                                </button>
+                            </div>
                             <button
                                 type="button"
                                 className="ipm-outline-action"
                                 onClick={onSendEmail}
-                                disabled={!canExport}
+                                disabled={!canExport || isSendingEmail || emailRecipient.trim().length === 0}
                             >
-                                Send via email
+                                {isSendingEmail ? "Sending..." : "Send via email"}
                             </button>
                         </div>
                     </div>

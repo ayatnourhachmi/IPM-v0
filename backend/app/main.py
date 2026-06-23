@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 # Columns added in Alembic 002/003; create_all() does not add new columns to existing tables.
 _BN_OPTIONAL_JSONB_COLUMNS: tuple[str, ...] = (
-    "constraints",
     "confidence",
     "risks",
     "justifications",

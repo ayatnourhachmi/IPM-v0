@@ -13,7 +13,7 @@ import { DeliveryStep, type DeliverySolution } from "@/components/delivery/Deliv
 import { PocExportStep } from "@/components/delivery/PocExportStep";
 import { Sg4ValidationPanel } from "@/components/sourcing/Sg4ValidationPanel";
 import { PhaseLoading } from "@/components/sourcing/PhaseLoading";
-import { exportRecommendationsDocx, exportRecommendationsPdf, getNeed, getRecommendations, updateNeedStatus } from "@/lib/api";
+import { emailRecommendationsDossier, exportRecommendationsDocx, exportRecommendationsPdf, getNeed, getRecommendations, updateNeedStatus } from "@/lib/api";
 import type { ExportReportRequest, SolutionRecommendations, GapAnalysisResponse, RecommendationSolutionPayload } from "@/lib/types";
 
 /** Saved from Discovery — matches localStorage + gap-analysis API shape */
@@ -42,7 +42,11 @@ function RecosPageContent() {
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [isExportingPdf, setIsExportingPdf] = useState(false);
     const [isExportingDocx, setIsExportingDocx] = useState(false);
-    const [exportError, setExportError] = useState<string | null>(null);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [exportMessage, setExportMessage] = useState<string | null>(null);
+    const [exportMessageKind, setExportMessageKind] = useState<"success" | "error">("error");
+    const [emailRecipient, setEmailRecipient] = useState("");
+    const [emailFormat, setEmailFormat] = useState<"pdf" | "docx">("pdf");
     const [exportSelectedIds, setExportSelectedIds] = useState<Set<string>>(new Set());
     const [deliveryView, setDeliveryView] = useState<"recommendations" | "poc_export">("recommendations");
 
@@ -161,13 +165,14 @@ function RecosPageContent() {
 
     const handlePdfExport = async () => {
         if (!ipmId || !canExport) return;
-        setExportError(null);
+        setExportMessage(null);
         setIsExportingPdf(true);
         try {
             const blob = await exportRecommendationsPdf(ipmId, buildExportPayload());
             triggerDownload(blob, `${ipmId.toLowerCase()}-recommendations.pdf`);
         } catch (error) {
-            setExportError(error instanceof Error ? error.message : "PDF export failed.");
+            setExportMessageKind("error");
+            setExportMessage(error instanceof Error ? error.message : "PDF export failed.");
         } finally {
             setIsExportingPdf(false);
         }
@@ -175,26 +180,46 @@ function RecosPageContent() {
 
     const handleDocxExport = async () => {
         if (!ipmId || !canExport) return;
-        setExportError(null);
+        setExportMessage(null);
         setIsExportingDocx(true);
         try {
             const blob = await exportRecommendationsDocx(ipmId, buildExportPayload());
             triggerDownload(blob, `${ipmId.toLowerCase()}-recommendations.docx`);
         } catch (error) {
-            setExportError(error instanceof Error ? error.message : "DOCX export failed.");
+            setExportMessageKind("error");
+            setExportMessage(error instanceof Error ? error.message : "DOCX export failed.");
         } finally {
             setIsExportingDocx(false);
         }
     };
 
-    const handleSendEmail = () => {
-        if (!canExport) return;
+    const handleSendEmail = async () => {
+        if (!ipmId || !canExport) return;
+        const recipient = emailRecipient.trim();
+        if (!recipient) {
+            setExportMessageKind("error");
+            setExportMessage("Enter a recipient email address before sending.");
+            return;
+        }
         const bundleNames = exportRecommendations.map((rec) => rec.solution_name).join(", ");
-        const subject = encodeURIComponent(`PoC preparation${ipmId ? ` — ${ipmId}` : ""}`);
-        const body = encodeURIComponent(
-            `Please find the PoC preparation package for the following solution bundle(s):\n\n${bundleNames}\n\nDownload the DOCX or PDF from IPM Flow before sending attachments if required.`,
-        );
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        setExportMessage(null);
+        setIsSendingEmail(true);
+        try {
+            const result = await emailRecommendationsDossier(ipmId, {
+                ...buildExportPayload(),
+                to_email: recipient,
+                format: emailFormat,
+                subject: `PoC preparation dossier - ${ipmId}`,
+                message: `Hello,\n\nPlease find attached the PoC preparation dossier for ${ipmId}.\n\nIncluded solution bundle(s): ${bundleNames || "Not specified"}.\n\nRegards,\nIPM Flow`,
+            });
+            setExportMessageKind("success");
+            setExportMessage(`Email sent to ${result.recipient} with attachment ${result.filename}.`);
+        } catch (error) {
+            setExportMessageKind("error");
+            setExportMessage(error instanceof Error ? error.message : "Email sending failed.");
+        } finally {
+            setIsSendingEmail(false);
+        }
     };
 
     const workflowState = deliveryView === "poc_export" ? "export" : "recommendations";
@@ -218,13 +243,19 @@ function RecosPageContent() {
                     recommendations={recommendations}
                     exportSelectedIds={exportSelectedIds}
                     exportRecommendationsCount={exportRecommendations.length}
-                    exportError={exportError}
+                    exportMessage={exportMessage}
+                    exportMessageKind={exportMessageKind}
                     isExportingPdf={isExportingPdf}
                     isExportingDocx={isExportingDocx}
+                    isSendingEmail={isSendingEmail}
                     canExport={canExport}
+                    emailRecipient={emailRecipient}
+                    emailFormat={emailFormat}
                     onToggleExport={toggleExportSelection}
                     onSelectAllExport={() => setExportSelectedIds(new Set(recommendations.map((rec) => rec.solution_id)))}
                     onClearExport={() => setExportSelectedIds(new Set())}
+                    onEmailRecipientChange={setEmailRecipient}
+                    onEmailFormatChange={setEmailFormat}
                     onPdfExport={handlePdfExport}
                     onDocxExport={handleDocxExport}
                     onSendEmail={handleSendEmail}

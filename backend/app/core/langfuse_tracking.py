@@ -128,7 +128,7 @@ def merge_trace_rule_pipeline(
         "rule_engine_signals": dict(hints_payload),
         "tags_after_llm_pre_rule_override": dict(tags_pre_override),
         "tags_after_rule_pipeline": dict(tags_post_pipeline),
-        "horizon_based_objectif_correction": horizon_override_fired,
+        "horizon_based_objective_correction": horizon_override_fired,
     }
     try:
         lf_trace.update(metadata=meta)

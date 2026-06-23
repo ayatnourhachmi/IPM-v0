@@ -9,16 +9,16 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # --- NLP tagging (aligned with FALLBACK_PROMPTS / Tags Literals in schemas) ---
-ALLOWED_OBJECTIF: frozenset[str] = frozenset(
+ALLOWED_OBJECTIVE: frozenset[str] = frozenset(
     {"cost_reduction", "cx_improvement", "risk_mitigation", "market_opportunity"}
 )
-ALLOWED_ORIGINE: frozenset[str] = frozenset(
-    {"enjeu_marche", "probleme_operationnel", "demande_client"}
+ALLOWED_ORIGIN: frozenset[str] = frozenset(
+    {"market_driver", "operational_problem", "client_request"}
 )
 
-# Allowed domain labels (prompt + UI); unknown → Autre
-ALLOWED_DOMAINE: frozenset[str] = frozenset(
-    {"IA", "Cloud", "Cybersecurite", "Data", "RH", "Finance", "Operations", "Autre"}
+# Allowed domain labels (prompt + UI); unknown → Other
+ALLOWED_DOMAIN: frozenset[str] = frozenset(
+    {"AI", "Cloud", "Cybersecurity", "Data", "HR", "Finance", "Operations", "Other"}
 )
 
 # Allowed impact labels (prompt); unknown → Cost (safe default)
@@ -26,11 +26,11 @@ ALLOWED_IMPACT: frozenset[str] = frozenset(
     {"Revenue", "Cost", "Risk", "CustomerExperience"}
 )
 
-_DEFAULT_OBJECTIF = "cost_reduction"
-_DEFAULT_ORIGINE = "probleme_operationnel"
+_DEFAULT_OBJECTIVE = "cost_reduction"
+_DEFAULT_ORIGIN = "operational_problem"
 
-# Normalized-key → canonical slug (objectif / origine)
-_OBJECTIF_ALIASES: dict[str, str] = {
+# Normalized-key → canonical slug (objective / origin)
+_OBJECTIVE_ALIASES: dict[str, str] = {
     "cost_reduction": "cost_reduction",
     "cost": "cost_reduction",
     "cx_improvement": "cx_improvement",
@@ -43,36 +43,39 @@ _OBJECTIF_ALIASES: dict[str, str] = {
     "growth": "market_opportunity",
 }
 
-_ORIGINE_ALIASES: dict[str, str] = {
-    "enjeu_marche": "enjeu_marche",
-    "probleme_operationnel": "probleme_operationnel",
-    "demande_client": "demande_client",
-    "market": "enjeu_marche",
-    "client": "demande_client",
-    "customer": "demande_client",
-    "operational": "probleme_operationnel",
-    "operations": "probleme_operationnel",
+_ORIGIN_ALIASES: dict[str, str] = {
+    "market_driver": "market_driver",
+    "operational_problem": "operational_problem",
+    "client_request": "client_request",
+    "enjeu_marche": "market_driver",
+    "probleme_operationnel": "operational_problem",
+    "demande_client": "client_request",
+    "market": "market_driver",
+    "client": "client_request",
+    "customer": "client_request",
+    "operational": "operational_problem",
+    "operations": "operational_problem",
 }
 
-# Normalized display key → canonical domaine label (exact casing for API)
-_DOMAINE_ALIASES: dict[str, str] = {
-    "ia": "IA",
-    "ai": "IA",
-    "intelligence artificielle": "IA",
+# Normalized display key → canonical domain label (exact casing for API)
+_DOMAIN_ALIASES: dict[str, str] = {
+    "ia": "AI",
+    "ai": "AI",
+    "intelligence artificielle": "AI",
     "cloud": "Cloud",
-    "cybersecurite": "Cybersecurite",
-    "cybersecurity": "Cybersecurite",
-    "cyber": "Cybersecurite",
-    "security": "Cybersecurite",
+    "cybersecurite": "Cybersecurity",
+    "cybersecurity": "Cybersecurity",
+    "cyber": "Cybersecurity",
+    "security": "Cybersecurity",
     "data": "Data",
-    "rh": "RH",
-    "hr": "RH",
-    "human resources": "RH",
+    "rh": "HR",
+    "hr": "HR",
+    "human resources": "HR",
     "finance": "Finance",
     "operations": "Operations",
     "operation": "Operations",
-    "autre": "Autre",
-    "other": "Autre",
+    "autre": "Other",
+    "other": "Other",
 }
 
 _IMPACT_ALIASES: dict[str, str] = {
@@ -170,25 +173,25 @@ def _sanitize_scalar_tag(
     return blob_copy
 
 
-def _sanitize_domaine_item(item: dict[str, Any]) -> dict[str, Any]:
-    raw = item.get("value", "Autre")
-    val = str(raw).strip() if raw is not None else "Autre"
-    if val in ALLOWED_DOMAINE:
+def _sanitize_domain_item(item: dict[str, Any]) -> dict[str, Any]:
+    raw = item.get("value", "Other")
+    val = str(raw).strip() if raw is not None else "Other"
+    if val in ALLOWED_DOMAIN:
         canon = val
     else:
         nk = _fold(val)
-        mapped = _DOMAINE_ALIASES.get(nk)
+        mapped = _DOMAIN_ALIASES.get(nk)
         # Try without folding spaces
         if mapped is None:
-            mapped = _DOMAINE_ALIASES.get(_norm_token(val).replace(" ", ""))
-        if mapped in ALLOWED_DOMAINE:
+            mapped = _DOMAIN_ALIASES.get(_norm_token(val).replace(" ", ""))
+        if mapped in ALLOWED_DOMAIN:
             canon = mapped
         else:
             logger.info(
-                "Tag guard: unknown domaine value %r — remapping to Autre",
+                "Tag guard: unknown domain value %r — remapping to Other",
                 val,
             )
-            canon = "Autre"
+            canon = "Other"
             item = dict(item)
             item["confidence"] = "low"
     return {"value": canon, "confidence": _coerce_confidence(item.get("confidence"))}
@@ -221,37 +224,46 @@ def _sanitize_impact_item(item: dict[str, Any]) -> dict[str, Any]:
 def sanitize_pitch_tag_dict(tag_dict: dict[str, Any]) -> dict[str, Any]:
     """Ensure tag dict satisfies Tags Literals/lists before constructing ``Tags``.
 
-    Drops unknown enums, fixes common aliases, maps unknown domaine→Autre / impact→Cost.
+    Drops unknown enums, fixes common aliases, maps unknown domain→Other / impact→Cost.
     """
     out = dict(tag_dict)
-    obj = out.get("objectif")
+    legacy_map = {
+        "objectif": "objective",
+        "domaine": "domain",
+        "origine": "origin",
+    }
+    for old_key, new_key in legacy_map.items():
+        if new_key not in out and old_key in out:
+            out[new_key] = out[old_key]
+
+    obj = out.get("objective")
     if isinstance(obj, dict):
-        out["objectif"] = _sanitize_scalar_tag(
+        out["objective"] = _sanitize_scalar_tag(
             obj,
-            aliases=_OBJECTIF_ALIASES,
-            allowed=ALLOWED_OBJECTIF,
-            default=_DEFAULT_OBJECTIF,
-            field_name="objectif",
+            aliases=_OBJECTIVE_ALIASES,
+            allowed=ALLOWED_OBJECTIVE,
+            default=_DEFAULT_OBJECTIVE,
+            field_name="objective",
         )
-    ori = out.get("origine")
+    ori = out.get("origin")
     if isinstance(ori, dict):
-        out["origine"] = _sanitize_scalar_tag(
+        out["origin"] = _sanitize_scalar_tag(
             ori,
-            aliases=_ORIGINE_ALIASES,
-            allowed=ALLOWED_ORIGINE,
-            default=_DEFAULT_ORIGINE,
-            field_name="origine",
+            aliases=_ORIGIN_ALIASES,
+            allowed=ALLOWED_ORIGIN,
+            default=_DEFAULT_ORIGIN,
+            field_name="origin",
         )
 
-    domaine_raw = out.get("domaine")
+    domain_raw = out.get("domain")
     dom_out: list[dict[str, Any]] = []
-    if isinstance(domaine_raw, list):
-        for x in domaine_raw:
+    if isinstance(domain_raw, list):
+        for x in domain_raw:
             if isinstance(x, dict):
-                dom_out.append(_sanitize_domaine_item(x))
+                dom_out.append(_sanitize_domain_item(x))
             elif isinstance(x, str) and x.strip():
-                dom_out.append(_sanitize_domaine_item({"value": x.strip(), "confidence": "low"}))
-    out["domaine"] = dom_out if dom_out else [{"value": "Autre", "confidence": "low"}]
+                dom_out.append(_sanitize_domain_item({"value": x.strip(), "confidence": "low"}))
+    out["domain"] = dom_out if dom_out else [{"value": "Other", "confidence": "low"}]
 
     impact_raw = out.get("impact")
     imp_out: list[dict[str, Any]] = []

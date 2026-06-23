@@ -6,11 +6,11 @@
 "use client";
 
 import type { Tags } from "@/lib/types";
-import { formatImpactLabel, OBJECTIF_LABELS, ORIGINE_LABELS, type ConfidenceLevel } from "@/lib/types";
+import { formatImpactLabel, OBJECTIVE_LABELS, ORIGIN_LABELS, type ConfidenceLevel } from "@/lib/types";
 
 interface TagChipsProps {
     tags: Tags;
-    field?: "objectif" | "domaine" | "impact" | "origine";
+    field?: "objective" | "domain" | "impact" | "origin";
     values?: string[];
     domains?: string[];
     dismissedTags?: Set<string>;
@@ -18,10 +18,10 @@ interface TagChipsProps {
 }
 
 const TAG_COLORS: Record<string, string> = {
-    objectif: "amber",
-    domaine: "blue",
+    objective: "amber",
+    domain: "blue",
     impact: "green",
-    origine: "purple",
+    origin: "purple",
 };
 
 const CONFIDENCE_LABEL: Record<string, string> = {
@@ -42,7 +42,7 @@ function normalise(value: string) {
 
 export function TagChips({
     tags,
-    field = "domaine",
+    field = "domain",
     values,
     domains,
     dismissedTags = new Set(),
@@ -56,23 +56,23 @@ export function TagChips({
         removable: boolean;
     }> = [];
 
-    if (field === "objectif" && tags.objectif?.value) {
-        const label = values?.[0]?.trim() || OBJECTIF_LABELS[tags.objectif.value];
+    if (field === "objective" && tags.objective?.value) {
+        const label = values?.[0]?.trim() || OBJECTIVE_LABELS[tags.objective.value];
         chips.push({
-            key: `obj-${tags.objectif.value}`,
+            key: `obj-${tags.objective.value}`,
             label,
-            color: TAG_COLORS.objectif,
-            confidence: tags.objectif.confidence,
+            color: TAG_COLORS.objective,
+            confidence: tags.objective.confidence,
             removable: false,
         });
     }
 
     const confidenceByDomain = new Map(
-        tags.domaine.map((d) => [normalise(d.value), d.confidence])
+        tags.domain.map((d) => [normalise(d.value), d.confidence])
     );
-    const domainValues = domains?.length ? domains : values?.length ? values : tags.domaine.map((d) => d.value);
+    const domainValues = domains?.length ? domains : values?.length ? values : tags.domain.map((d) => d.value);
 
-    if (field === "domaine") {
+    if (field === "domain") {
         domainValues.forEach((domain) => {
             const value = domain.trim();
             if (!value) return;
@@ -80,7 +80,7 @@ export function TagChips({
             chips.push({
                 key: `dom-${value}`,
                 label: value,
-                color: TAG_COLORS.domaine,
+                color: TAG_COLORS.domain,
                 confidence,
                 removable: true,
             });
@@ -108,13 +108,13 @@ export function TagChips({
         });
     }
 
-    if (field === "origine" && tags.origine?.value) {
-        const label = values?.[0]?.trim() || ORIGINE_LABELS[tags.origine.value];
+    if (field === "origin" && tags.origin?.value) {
+        const label = values?.[0]?.trim() || ORIGIN_LABELS[tags.origin.value];
         chips.push({
-            key: `ori-${tags.origine.value}`,
+            key: `ori-${tags.origin.value}`,
             label,
-            color: TAG_COLORS.origine,
-            confidence: tags.origine.confidence,
+            color: TAG_COLORS.origin,
+            confidence: tags.origin.confidence,
             removable: false,
         });
     }

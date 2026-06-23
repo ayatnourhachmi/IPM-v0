@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ConfidenceLevel, Tags } from "@/lib/types";
-import { formatImpactLabel, OBJECTIF_LABELS, ORIGINE_LABELS } from "@/lib/types";
+import { formatImpactLabel, OBJECTIVE_LABELS, ORIGIN_LABELS } from "@/lib/types";
 import { ConfidenceChip } from "@/components/sourcing/ConfidenceChip";
 import { PhaseLoading } from "@/components/sourcing/PhaseLoading";
 
@@ -25,7 +25,7 @@ type Chip = {
 };
 
 function formatDomainLabel(value: string) {
-    return value.trim().toUpperCase() === "IA" ? "AI" : value.trim();
+    return value.trim().toUpperCase() === "AI" ? "AI" : value.trim();
 }
 
 function splitValues(value: string) {
@@ -42,19 +42,19 @@ function getSummaryChips(
     impactLabel: string,
     originLabel: string
 ) {
-    const objectiveConfidence = tags?.objectif?.confidence ?? "low";
-    const objective: Chip[] = objectiveLabel || tags?.objectif?.value
+    const objectiveConfidence = tags?.objective?.confidence ?? "low";
+    const objective: Chip[] = objectiveLabel || tags?.objective?.value
         ? [{
-            label: objectiveLabel || (tags?.objectif?.value ? OBJECTIF_LABELS[tags.objectif.value] : ""),
+            label: objectiveLabel || (tags?.objective?.value ? OBJECTIVE_LABELS[tags.objective.value] : ""),
             confidence: objectiveConfidence,
         }]
         : [];
 
     const domainConfidence = new Map(
-        tags?.domaine.map((domain) => [domain.value.trim().toLowerCase(), domain.confidence]) ?? []
+        tags?.domain.map((domain) => [domain.value.trim().toLowerCase(), domain.confidence]) ?? []
     );
     const domainsSource = splitValues(domainsLabel);
-    const domains: Chip[] = (domainsSource.length ? domainsSource : tags?.domaine.map((domain) => domain.value) ?? [])
+    const domains: Chip[] = (domainsSource.length ? domainsSource : tags?.domain.map((domain) => domain.value) ?? [])
         .map((domain) => ({
             label: formatDomainLabel(domain),
             confidence: domainConfidence.get(domain.trim().toLowerCase()) ?? "low",
@@ -72,10 +72,10 @@ function getSummaryChips(
             confidence: impactConfidence.get(item.trim().toLowerCase()) ?? "low",
         }));
 
-    const originConfidence = tags?.origine?.confidence ?? "low";
-    const origin: Chip[] = originLabel || tags?.origine?.value
+    const originConfidence = tags?.origin?.confidence ?? "low";
+    const origin: Chip[] = originLabel || tags?.origin?.value
         ? [{
-            label: originLabel || (tags?.origine?.value ? ORIGINE_LABELS[tags.origine.value] : ""),
+            label: originLabel || (tags?.origin?.value ? ORIGIN_LABELS[tags.origin.value] : ""),
             confidence: originConfidence,
         }]
         : [];

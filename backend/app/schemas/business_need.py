@@ -13,6 +13,35 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 Confidence = Literal["low", "medium", "high"]
 
+_LEGACY_HORIZON_VALUES = {
+    "court_terme": "short_term",
+    "moyen_terme": "mid_term",
+    "long_terme": "long_term",
+}
+
+_LEGACY_ORIGIN_VALUES = {
+    "enjeu_marche": "market_driver",
+    "probleme_operationnel": "operational_problem",
+    "demande_client": "client_request",
+}
+
+_LEGACY_DOMAIN_VALUES = {
+    "IA": "AI",
+    "Cybersecurite": "Cybersecurity",
+    "RH": "HR",
+    "Autre": "Other",
+}
+
+
+def _normalize_horizon(value: object) -> object:
+    if isinstance(value, str):
+        return _LEGACY_HORIZON_VALUES.get(value, value)
+    return value
+
+
+def _normalize_tag_value(value: object, mapping: dict[str, str]) -> object:
+    return mapping.get(value, value) if isinstance(value, str) else value
+
 T = TypeVar("T")
 
 
@@ -37,16 +66,54 @@ class TagItem(BaseModel):
 class Tags(BaseModel):
     """AI-generated metadata tags for a business need."""
 
-    objectif: TagField[Literal[
+    objective: TagField[Literal[
         "cost_reduction", "cx_improvement", "risk_mitigation", "market_opportunity"
     ]] = Field(description="Primary objective classification with confidence")
-    domaine: list[TagItem] = Field(description="Business domains, each with confidence")
+    domain: list[TagItem] = Field(description="Business domains, each with confidence")
     impact: list[TagItem] = Field(description="Impact areas, each with confidence")
-    origine: TagField[Literal[
-        "enjeu_marche", "probleme_operationnel", "demande_client"
+    origin: TagField[Literal[
+        "market_driver", "operational_problem", "client_request"
     ]] = Field(description="Origin classification with confidence")
 
-    @field_validator("objectif", "origine", mode="before")
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_legacy_keys(cls, v: object) -> object:
+        """Accept legacy French tag keys from old persisted rows."""
+        if isinstance(v, dict):
+            data = dict(v)
+            legacy_map = {
+                "objectif": "objective",
+                "domaine": "domain",
+                "origine": "origin",
+            }
+            for old_key, new_key in legacy_map.items():
+                if new_key not in data and old_key in data:
+                    data[new_key] = data[old_key]
+            origin = data.get("origin")
+            if isinstance(origin, dict):
+                origin = dict(origin)
+                origin["value"] = _normalize_tag_value(origin.get("value"), _LEGACY_ORIGIN_VALUES)
+                data["origin"] = origin
+            elif isinstance(origin, str):
+                data["origin"] = _normalize_tag_value(origin, _LEGACY_ORIGIN_VALUES)
+
+            domain = data.get("domain")
+            if isinstance(domain, list):
+                normalized_domain = []
+                for item in domain:
+                    if isinstance(item, dict):
+                        normalized_item = dict(item)
+                        normalized_item["value"] = _normalize_tag_value(
+                            normalized_item.get("value"), _LEGACY_DOMAIN_VALUES
+                        )
+                        normalized_domain.append(normalized_item)
+                    else:
+                        normalized_domain.append(_normalize_tag_value(item, _LEGACY_DOMAIN_VALUES))
+                data["domain"] = normalized_domain
+            return data
+        return v
+
+    @field_validator("objective", "origin", mode="before")
     @classmethod
     def _coerce_scalar(cls, v: object) -> object:
         """Accept legacy flat strings from old DB rows; wrap them with low confidence."""
@@ -54,7 +121,7 @@ class Tags(BaseModel):
             return {"value": v, "confidence": "low"}
         return v
 
-    @field_validator("domaine", "impact", mode="before")
+    @field_validator("domain", "impact", mode="before")
     @classmethod
     def _coerce_list(cls, v: object) -> object:
         """Accept legacy flat string lists from old DB rows; wrap each with low confidence."""
@@ -69,10 +136,27 @@ class Tags(BaseModel):
 class TagsConfidence(BaseModel):
     """Flattened per-dimension classification confidence aligned with Tags (analyze / persistence aid)."""
 
-    objectif: Confidence | None = None
-    origine: Confidence | None = None
-    domaine: list[TagItem] = Field(default_factory=list, description="Value + confidence for each domaine chip")
+    objective: Confidence | None = None
+    origin: Confidence | None = None
+    domain: list[TagItem] = Field(default_factory=list, description="Value + confidence for each domain chip")
     impact: list[TagItem] = Field(default_factory=list, description="Value + confidence for each impact chip")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_legacy_keys(cls, v: object) -> object:
+        """Accept legacy French confidence keys from old persisted rows."""
+        if isinstance(v, dict):
+            data = dict(v)
+            legacy_map = {
+                "objectif": "objective",
+                "domaine": "domain",
+                "origine": "origin",
+            }
+            for old_key, new_key in legacy_map.items():
+                if new_key not in data and old_key in data:
+                    data[new_key] = data[old_key]
+            return data
+        return v
 
 
 class DuplicateMatch(BaseModel):
@@ -106,18 +190,28 @@ class AnalyzeRequest(BaseModel):
     """Request body for the /needs/analyze endpoint."""
 
     pitch: str = Field(min_length=1, description="Free-text pitch to analyze")
-    horizon: Optional[Literal["court_terme", "moyen_terme", "long_terme"]] = Field(
+    horizon: Optional[Literal["short_term", "mid_term", "long_term"]] = Field(
         default=None,
-        description="Planning horizon — guides objectif classification bias",
+        description="Planning horizon — guides objective classification bias",
     )
+
+    @field_validator("horizon", mode="before")
+    @classmethod
+    def _coerce_legacy_horizon(cls, v: object) -> object:
+        return _normalize_horizon(v)
 
 
 class CreateNeedRequest(BaseModel):
     """Request body for POST /needs — only 2 fields from the user."""
 
     pitch: str = Field(min_length=20, description="Free-text pitch (≥20 chars)")
-    horizon: Literal["court_terme", "moyen_terme", "long_terme"]
+    horizon: Literal["short_term", "mid_term", "long_term"]
     tags: Tags | None = Field(default=None, description="Optional precomputed tags from /needs/analyze")
+
+    @field_validator("horizon", mode="before")
+    @classmethod
+    def _coerce_legacy_horizon(cls, v: object) -> object:
+        return _normalize_horizon(v)
 
     @field_validator("pitch")
     @classmethod
@@ -180,11 +274,11 @@ class BusinessNeedResponse(BaseModel):
 
     id: str
     pitch: str
-    horizon: Literal["court_terme", "moyen_terme", "long_terme"]
+    horizon: Literal["short_term", "mid_term", "long_term"]
     tags: Tags
     confidence: dict | None = Field(
         default=None,
-        description="Per-dimension AI confidence for tags (objectif, domaine, impact, origine)",
+        description="Per-dimension AI confidence for tags (objective, domain, impact, origin)",
     )
     risks: list[RiskItem] = Field(default_factory=list, description="Latest gap-analysis risks")
     justifications: dict | None = Field(
@@ -193,7 +287,7 @@ class BusinessNeedResponse(BaseModel):
     )
     ivi_scores: dict | None = Field(
         default=None,
-        description="IVI numeric scores (maturite, expertise, duree, impact) from latest gap analysis",
+        description="IVI numeric scores (maturity, expertise, duration, impact) from latest gap analysis",
     )
     status: Literal["draft", "submitted", "solutions_reviewed", "selected", "rework", "abandoned", "in_qualification", "delivery"]
     rework_note: str | None = None
@@ -202,6 +296,11 @@ class BusinessNeedResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("horizon", mode="before")
+    @classmethod
+    def _coerce_legacy_horizon(cls, v: object) -> object:
+        return _normalize_horizon(v)
 
 
 # ---------------------------------------------------------------------------
@@ -271,24 +370,42 @@ def _coerce_solution_features(value: object) -> list[str]:
 class EvaluationScores(BaseModel):
     """IVI qualification scores derived from gap analysis, each with a client-facing evidence-linked rationale."""
 
-    maturite: int = Field(
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_legacy_score_keys(cls, v: object) -> object:
+        """Accept legacy IVI score keys from old persisted rows."""
+        if isinstance(v, dict):
+            data = dict(v)
+            legacy_map = {
+                "maturite": "maturity",
+                "maturite_justification": "maturity_justification",
+                "duree": "duration",
+                "duree_justification": "duration_justification",
+            }
+            for old_key, new_key in legacy_map.items():
+                if new_key not in data and old_key in data:
+                    data[new_key] = data[old_key]
+            return data
+        return v
+
+    maturity: int = Field(
         ge=1,
         le=5,
         description="Solution maturity from catalog tier: PoC=2, Pilot=3, Production=4, Multi-ref=5",
     )
-    maturite_justification: str = Field(
+    maturity_justification: str = Field(
         default="",
-        description="Two-sentence client rationale for maturite score, citing concrete gap-analysis evidence",
+        description="Two-sentence client rationale for maturity score, citing concrete gap-analysis evidence",
     )
     expertise: int = Field(ge=1, le=5, description="DXC expertise available to deliver (1=low, 5=high)")
     expertise_justification: str = Field(
         default="",
         description="Two-sentence client rationale for expertise score, citing documented DXC capabilities",
     )
-    duree: int = Field(ge=1, le=5, description="Delivery speed (5=fast, 1=long/complex)")
-    duree_justification: str = Field(
+    duration: int = Field(ge=1, le=5, description="Delivery speed (5=fast, 1=long/complex)")
+    duration_justification: str = Field(
         default="",
-        description="Two-sentence client rationale for duree score, citing gaps and resource needs",
+        description="Two-sentence client rationale for duration score, citing gaps and resource needs",
     )
     impact: int = Field(ge=1, le=5, description="Business impact on the identified need (1=low, 5=high)")
     impact_justification: str = Field(
@@ -628,7 +745,7 @@ class DurationEstimateResponse(BaseModel):
     """Estimated elapsed time IVI-aligned speed score (5 = fast)."""
 
     duration_months: int = Field(ge=1, le=36, description="Rounded calendar months on the critical path")
-    duration_score: int = Field(ge=1, le=5, description="Speed score aligned with IVI duree (5 = short)")
+    duration_score: int = Field(ge=1, le=5, description="Speed score aligned with IVI duration (5 = short)")
 
 
 # ---------------------------------------------------------------------------
@@ -651,8 +768,8 @@ class BusinessImpactScoreRequest(BaseModel):
     """Score how well a catalog solution aligns with business impact drivers."""
 
     pitch: str = Field(default="", description="Need pitch (optional context for the LLM)")
-    domains: list[str] = Field(default_factory=list, description="Need domaine values")
-    objective: str = Field(default="", description="Need objectif taxonomy value e.g. cost_reduction")
+    domains: list[str] = Field(default_factory=list, description="Need domain values")
+    objective: str = Field(default="", description="Need objective taxonomy value e.g. cost_reduction")
     impact: str = Field(default="", description="Primary impact label e.g. Cost, Revenue")
     selected_solution: dict = Field(description="Must include catalog id under key 'id' (EXCEL-…)")
 
@@ -691,3 +808,29 @@ class ExportReportRequest(BaseModel):
 
     recommendations: list[SolutionRecommendations]
     delivery_solutions: list[ExportDeliverySolution]
+
+
+class EmailDossierRequest(ExportReportRequest):
+    """Request body for sending an exported dossier by email."""
+
+    to_email: str = Field(description="Recipient email address")
+    subject: str | None = Field(default=None, max_length=160)
+    message: str | None = Field(default=None, max_length=4000)
+    format: Literal["pdf", "docx"] = "pdf"
+
+    @field_validator("to_email")
+    @classmethod
+    def valid_email_shape(cls, value: str) -> str:
+        cleaned = value.strip()
+        if "@" not in cleaned or cleaned.startswith("@") or cleaned.endswith("@"):
+            raise ValueError("A valid recipient email address is required")
+        return cleaned
+
+
+class EmailDossierResponse(BaseModel):
+    """Response body after emailing an exported dossier."""
+
+    sent: bool
+    recipient: str
+    filename: str
+    object_name: str

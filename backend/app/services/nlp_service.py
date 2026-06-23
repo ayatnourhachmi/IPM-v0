@@ -164,50 +164,50 @@ def _apply_rule_overrides(tag_dict: dict, hints: RuleHints) -> dict:
     Overrides happen AFTER the LLM responds so they are guaranteed regardless
     of whether the LLM followed the prompt constraints.
     """
-    if hints.origine:
-        tag_dict["origine"] = {"value": hints.origine, "confidence": "high"}
+    if hints.origin:
+        tag_dict["origin"] = {"value": hints.origin, "confidence": "high"}
         logger.info(
-            "Rule override applied: origine → %s (rules: %s)",
-            hints.origine,
+            "Rule override applied: origin → %s (rules: %s)",
+            hints.origin,
             list(hints.reasons.keys()),
         )
 
-    if hints.exclude_domaine:
-        original = tag_dict.get("domaine", [])
+    if hints.exclude_domain:
+        original = tag_dict.get("domain", [])
         filtered = [
             item for item in original
             if (item.get("value") if isinstance(item, dict) else item)
-            not in hints.exclude_domaine
+            not in hints.exclude_domain
         ]
-        # Never leave domaine empty — fall back to Autre
-        tag_dict["domaine"] = filtered or [{"value": "Autre", "confidence": "low"}]
+        # Never leave domain empty — fall back to Other
+        tag_dict["domain"] = filtered or [{"value": "Other", "confidence": "low"}]
         removed = len(original) - len(filtered)
         if removed:
             logger.info(
-                "Rule override applied: removed %d domain(s) %s from domaine",
+                "Rule override applied: removed %d domain(s) %s from domain",
                 removed,
-                hints.exclude_domaine,
+                hints.exclude_domain,
             )
 
     return tag_dict
 
 
-# Objectif values that contradict each horizon, and the preferred replacement.
+# Objective values that contradict each horizon, and the preferred replacement.
 _HORIZON_CONTRADICTS: dict[str, set[str]] = {
-    "court_terme": {"market_opportunity"},
-    "moyen_terme": set(),  # mid-term never forces an override
-    "long_terme":  {"cost_reduction", "cx_improvement"},
+    "short_term": {"market_opportunity"},
+    "mid_term": set(),  # mid-term never forces an override
+    "long_term":  {"cost_reduction", "cx_improvement"},
 }
 _HORIZON_PREFERRED: dict[str, str] = {
-    "court_terme": "cost_reduction",
-    "long_terme":  "market_opportunity",
+    "short_term": "cost_reduction",
+    "long_term":  "market_opportunity",
 }
 
 
 def _apply_horizon_override(tag_dict: dict, horizon: str | None, hints: RuleHints) -> dict:
-    """Override objectif when it contradicts the horizon.
+    """Override objective when it contradicts the horizon.
 
-    The only time we respect the LLM's contradictory objectif is when the
+    The only time we respect the LLM's contradictory objective is when the
     deterministic rule engine already fired (i.e. the pitch contained measurable
     KPIs or explicit client signals — truly explicit content).
 
@@ -218,9 +218,9 @@ def _apply_horizon_override(tag_dict: dict, horizon: str | None, hints: RuleHint
     if not horizon:
         return tag_dict
 
-    objectif = tag_dict.get("objectif", {})
-    current_value = objectif.get("value", "") if isinstance(objectif, dict) else str(objectif)
-    current_confidence = objectif.get("confidence", "low") if isinstance(objectif, dict) else "low"
+    objective = tag_dict.get("objective", {})
+    current_value = objective.get("value", "") if isinstance(objective, dict) else str(objective)
+    current_confidence = objective.get("confidence", "low") if isinstance(objective, dict) else "low"
 
     contradictory = _HORIZON_CONTRADICTS.get(horizon, set())
     if current_value not in contradictory:
@@ -232,16 +232,16 @@ def _apply_horizon_override(tag_dict: dict, horizon: str | None, hints: RuleHint
     if hints.has_overrides:
         logger.debug(
             "Horizon override skipped: rule engine already fired for this pitch "
-            "(objectif=%s, horizon=%s)",
+            "(objective=%s, horizon=%s)",
             current_value,
             horizon,
         )
         return tag_dict
 
     new_value = _HORIZON_PREFERRED.get(horizon, current_value)
-    tag_dict["objectif"] = {"value": new_value, "confidence": "medium"}
+    tag_dict["objective"] = {"value": new_value, "confidence": "medium"}
     logger.info(
-        "Horizon override applied: objectif %s → %s "
+        "Horizon override applied: objective %s → %s "
         "(horizon=%s, LLM confidence was %s, no rule-engine signals)",
         current_value,
         new_value,
@@ -257,9 +257,9 @@ def _apply_horizon_override(tag_dict: dict, horizon: str | None, hints: RuleHint
 # ---------------------------------------------------------------------------
 
 _HORIZON_CONTEXT: dict[str, str] = {
-    "court_terme": (
-        "Planning horizon: SHORT-TERM (court_terme — delivery expected within ~6 months).\n"
-        "Rule for objectif: when the pitch is ambiguous or could fit multiple objectif values, "
+    "short_term": (
+        "Planning horizon: SHORT-TERM (short_term — delivery expected within ~6 months).\n"
+        "Rule for objective: when the pitch is ambiguous or could fit multiple objective values, "
         "you MUST default to 'cost_reduction' or 'cx_improvement'.\n"
         "You MUST NOT select 'market_opportunity' unless the pitch explicitly and "
         "unambiguously describes launching a new product or capturing a new market — "
@@ -267,16 +267,16 @@ _HORIZON_CONTEXT: dict[str, str] = {
         "Select 'risk_mitigation' only if the pitch explicitly mentions a compliance "
         "deadline, audit, security breach, or regulatory obligation."
     ),
-    "moyen_terme": (
-        "Planning horizon: MID-TERM (moyen_terme — delivery expected within 6–18 months).\n"
-        "Rule for objectif: all values are valid. When ambiguous, slightly prefer "
+    "mid_term": (
+        "Planning horizon: MID-TERM (mid_term — delivery expected within 6–18 months).\n"
+        "Rule for objective: all values are valid. When ambiguous, slightly prefer "
         "'cost_reduction', 'cx_improvement', or 'risk_mitigation' over "
         "'market_opportunity' — choose 'market_opportunity' only when the pitch "
         "clearly signals expansion, new revenue, or competitive positioning."
     ),
-    "long_terme": (
-        "Planning horizon: LONG-TERM (long_terme — delivery expected beyond 18 months).\n"
-        "Rule for objectif: when the pitch is ambiguous or could fit multiple objectif values, "
+    "long_term": (
+        "Planning horizon: LONG-TERM (long_term — delivery expected beyond 18 months).\n"
+        "Rule for objective: when the pitch is ambiguous or could fit multiple objective values, "
         "you MUST default to 'market_opportunity' or 'risk_mitigation'.\n"
         "You MUST NOT select 'cost_reduction' or 'cx_improvement' unless the pitch "
         "describes a foundational, multi-year transformation — a simple efficiency "
@@ -285,7 +285,7 @@ _HORIZON_CONTEXT: dict[str, str] = {
 }
 
 _HORIZON_NO_CONTEXT = (
-    "Planning horizon: not specified — classify objectif solely based on the pitch content."
+    "Planning horizon: not specified — classify objective solely based on the pitch content."
 )
 
 
@@ -299,7 +299,7 @@ def _build_horizon_context(horizon: str | None) -> str:
 def _build_tagging_intent(hints: RuleHints, horizon: str | None) -> tuple[str, str, str]:
     """Build explicit, implicit, and strategic intent strings for pitch tagging."""
     explicit = (
-        "Return structured tags only — objectif, domaine, impact, origine — "
+        "Return structured tags only — objective, domain, impact, origin — "
         "each with an honest per-field confidence level."
     )
 
@@ -313,7 +313,7 @@ def _build_tagging_intent(hints: RuleHints, horizon: str | None) -> tuple[str, s
         )
     if horizon:
         implicit_lines.append(
-            "Bias objectif per horizon context when the pitch is ambiguous."
+            "Bias objective per horizon context when the pitch is ambiguous."
         )
     implicit = " ".join(implicit_lines)
 
@@ -357,13 +357,13 @@ def _parse_tag_dict(raw_tags: dict) -> dict:
                 result.append({"value": item.get("value", ""), "confidence": item.get("confidence", "low")})
             elif isinstance(item, str):
                 result.append({"value": item, "confidence": "low"})
-        return result or [{"value": "Autre", "confidence": "low"}]
+        return result or [{"value": "Other", "confidence": "low"}]
 
     return {
-        "objectif": _scalar("objectif", "cost_reduction"),
-        "domaine": _items("domaine"),
+        "objective": _scalar("objective", "cost_reduction"),
+        "domain": _items("domain"),
         "impact": _items("impact"),
-        "origine": _scalar("origine", "probleme_operationnel"),
+        "origin": _scalar("origin", "operational_problem"),
     }
 
 
@@ -435,10 +435,10 @@ async def tag_pitch(
     tag_dict = _apply_horizon_override(tag_dict, horizon, hints)
     tag_dict = sanitize_pitch_tag_dict(tag_dict)
 
-    def _objectif_blob(d: dict) -> str:
-        return json.dumps(d.get("objectif"), sort_keys=True, default=str)
+    def _objective_blob(d: dict) -> str:
+        return json.dumps(d.get("objective"), sort_keys=True, default=str)
 
-    horizon_override_fired = _objectif_blob(after_rules) != _objectif_blob(tag_dict)
+    horizon_override_fired = _objective_blob(after_rules) != _objective_blob(tag_dict)
 
     merge_trace_rule_pipeline(
         lf_trace,
@@ -446,8 +446,8 @@ async def tag_pitch(
         pitch_preview=pitch[:200],
         horizon=horizon,
         hints_payload={
-            "origine_hint": hints.origine,
-            "exclude_domaine": list(hints.exclude_domaine),
+            "origin_hint": hints.origin,
+            "exclude_domain": list(hints.exclude_domain),
             "reasons": dict(hints.reasons),
             "has_overrides": hints.has_overrides,
         },

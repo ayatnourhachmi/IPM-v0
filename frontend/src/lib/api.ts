@@ -2,7 +2,7 @@
  * Typed fetch wrapper for all IPM API endpoints.
  */
 
-import type { AnalyzeResponse, AnalyzeSuggestionsResponse, AnalyzeTagsResponse, BusinessNeed, CatalogProduct, CatalogSearchResponse, CreateNeedRequest, ExportReportRequest, GapAnalysisResponse, RecommendationsRequest, RecommendationsResponse, UpdateStatusRequest } from "./types";
+import type { AnalyzeResponse, AnalyzeSuggestionsResponse, AnalyzeTagsResponse, BusinessNeed, CatalogProduct, CatalogSearchResponse, CreateNeedRequest, EmailDossierRequest, EmailDossierResponse, ExportReportRequest, GapAnalysisResponse, RecommendationsRequest, RecommendationsResponse, UpdateStatusRequest } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
@@ -151,4 +151,11 @@ export function exportRecommendationsDocx(needId: string, body: ExportReportRequ
         method: "POST",
         body: JSON.stringify(body),
     });
+}
+
+export function emailRecommendationsDossier(needId: string, body: EmailDossierRequest): Promise<EmailDossierResponse> {
+    return request<EmailDossierResponse>(`/api/v1/needs/${needId}/export/email`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    }, 30000);
 }

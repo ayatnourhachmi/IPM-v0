@@ -16,6 +16,13 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
       LANGFUSE_HOST: ${LANGFUSE_HOST:-https://cloud.langfuse.com}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-IPM Flow}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000","http://127.0.0.1:3000"]}'
     depends_on:
       postgres: { condition: service_healthy }

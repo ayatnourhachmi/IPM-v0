@@ -17,7 +17,7 @@ class Base(DeclarativeBase):
 class BusinessNeed(Base):
     """A single business need submitted through the sourcing form.
 
-    ``tags`` holds objectif / domaine / impact / origine (with per-field confidence).
+    ``tags`` holds objective / domain / impact / origin (with per-field confidence).
     ``confidence`` is an optional flattened snapshot of those confidence levels for querying.
     ``risks``, ``justifications``, and ``ivi_scores`` are filled by the latest gap analysis run.
     """
@@ -31,7 +31,6 @@ class BusinessNeed(Base):
 
     confidence: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
-    constraints: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     risks: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     justifications: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

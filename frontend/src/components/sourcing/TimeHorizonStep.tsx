@@ -11,7 +11,7 @@ interface TimeHorizonStepProps {
     onSubmit: () => void;
 }
 
-const HORIZONS: Horizon[] = ["court_terme", "moyen_terme", "long_terme"];
+const HORIZONS: Horizon[] = ["short_term", "mid_term", "long_term"];
 
 export function TimeHorizonStep({
     value,

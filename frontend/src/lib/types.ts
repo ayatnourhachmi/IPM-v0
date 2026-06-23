@@ -2,13 +2,13 @@
  * TypeScript interfaces mirroring backend Pydantic schemas.
  */
 
-export type Horizon = "court_terme" | "moyen_terme" | "long_terme";
+export type Horizon = "short_term" | "mid_term" | "long_term";
 
 export type Status = "draft" | "submitted" | "solutions_reviewed" | "selected" | "rework" | "abandoned" | "in_qualification" | "delivery";
 
-export type Objectif = "cost_reduction" | "cx_improvement" | "risk_mitigation" | "market_opportunity";
+export type Objective = "cost_reduction" | "cx_improvement" | "risk_mitigation" | "market_opportunity";
 
-export type Origine = "enjeu_marche" | "probleme_operationnel" | "demande_client";
+export type Origin = "market_driver" | "operational_problem" | "client_request";
 
 export type Impact = "Revenue" | "Cost" | "Risk" | "CustomerExperience";
 
@@ -21,13 +21,13 @@ export interface TagScalar<T extends string = string> {
 }
 
 export interface Tags {
-    objectif: TagScalar<Objectif>;
-    domaine: TagScalar<string>[];
+    objective: TagScalar<Objective>;
+    domain: TagScalar<string>[];
     impact: TagScalar<Impact | string>[];
-    origine: TagScalar<Origine>;
+    origin: TagScalar<Origin>;
 }
 
-export const CATEGORIES = ["Coût", "Expérience client", "Risque", "Opportunité marché"] as const;
+export const CATEGORIES = ["Cost", "Customer Experience", "Risk", "Market Opportunity"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export interface DuplicateMatch {
@@ -56,16 +56,16 @@ export interface BusinessNeed {
     confidence?: TagsConfidenceSnapshot | null;
     risks: RiskItem[];
     justifications?: {
-        maturite_justification?: string;
+        maturity_justification?: string;
         expertise_justification?: string;
-        duree_justification?: string;
+        duration_justification?: string;
         impact_justification?: string;
         fit_justification?: string;
     } | null;
     ivi_scores?: {
-        maturite: number;
+        maturity: number;
         expertise: number;
-        duree: number;
+        duration: number;
         impact: number;
     } | null;
     status: Status;
@@ -77,9 +77,9 @@ export interface BusinessNeed {
 
 /** Flattened tag confidence envelope (analyze + DB persistence) */
 export interface TagsConfidenceSnapshot {
-    objectif?: ConfidenceLevel;
-    origine?: ConfidenceLevel;
-    domaine?: Array<{ value?: string | null; confidence: ConfidenceLevel }>;
+    objective?: ConfidenceLevel;
+    origin?: ConfidenceLevel;
+    domain?: Array<{ value?: string | null; confidence: ConfidenceLevel }>;
     impact?: Array<{ value?: string | null; confidence: ConfidenceLevel }>;
 }
 
@@ -136,12 +136,12 @@ export interface CatalogSearchResponse {
 }
 
 export interface EvaluationScores {
-    maturite: number;
-    maturite_justification: string;
+    maturity: number;
+    maturity_justification: string;
     expertise: number;
     expertise_justification: string;
-    duree: number;
-    duree_justification: string;
+    duration: number;
+    duration_justification: string;
     impact: number;
     impact_justification: string;
 }
@@ -227,10 +227,24 @@ export interface ExportReportRequest {
     delivery_solutions: ExportDeliverySolution[];
 }
 
+export interface EmailDossierRequest extends ExportReportRequest {
+    to_email: string;
+    subject?: string | null;
+    message?: string | null;
+    format: "pdf" | "docx";
+}
+
+export interface EmailDossierResponse {
+    sent: boolean;
+    recipient: string;
+    filename: string;
+    object_name: string;
+}
+
 export const HORIZON_LABELS: Record<Horizon, { label: string; detail: string }> = {
-    court_terme: { label: "Short term", detail: "< 3 months" },
-    moyen_terme: { label: "Mid term", detail: "6-12 months" },
-    long_terme: { label: "Long term", detail: "> 1 year" },
+    short_term: { label: "Short term", detail: "< 3 months" },
+    mid_term: { label: "Mid term", detail: "6-12 months" },
+    long_term: { label: "Long term", detail: "> 1 year" },
 };
 
 export const STATUS_LABELS: Record<Status, string> = {
@@ -244,17 +258,17 @@ export const STATUS_LABELS: Record<Status, string> = {
     delivery: "Delivery",
 };
 
-export const OBJECTIF_LABELS: Record<Objectif, string> = {
+export const OBJECTIVE_LABELS: Record<Objective, string> = {
     cost_reduction: "Cost Reduction",
     cx_improvement: "CX Improvement",
     risk_mitigation: "Risk Mitigation",
     market_opportunity: "Market Opportunity",
 };
 
-export const ORIGINE_LABELS: Record<Origine, string> = {
-    enjeu_marche: "Market Driver",
-    probleme_operationnel: "Operational Problem",
-    demande_client: "Client Request",
+export const ORIGIN_LABELS: Record<Origin, string> = {
+    market_driver: "Market Driver",
+    operational_problem: "Operational Problem",
+    client_request: "Client Request",
 };
 
 export const IMPACT_LABELS: Record<Impact, string> = {

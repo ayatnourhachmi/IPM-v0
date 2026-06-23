@@ -15,8 +15,8 @@ interface RecapPanelProps {
     onPitchChange: (value: string) => void;
     tags: Tags | null;
     horizon: Horizon | null;
-    summaryObjectif: string;
-    onSummaryObjectifChange: (value: string) => void;
+    summaryObjective: string;
+    onSummaryObjectiveChange: (value: string) => void;
     summaryDomains: string;
     onSummaryDomainsChange: (value: string) => void;
     summaryImpact: string;
@@ -32,8 +32,8 @@ export function RecapPanel({
     onPitchChange,
     tags,
     horizon,
-    summaryObjectif,
-    onSummaryObjectifChange,
+    summaryObjective,
+    onSummaryObjectiveChange,
     summaryDomains,
     onSummaryDomainsChange,
     summaryImpact,
@@ -44,7 +44,7 @@ export function RecapPanel({
     const [editing, setEditing] = useState<EditableField>(null);
 
     const hasAnything =
-        !!summaryObjectif ||
+        !!summaryObjective ||
         !!summaryDomains ||
         !!summaryImpact ||
         !!summaryOrigin ||
@@ -129,20 +129,20 @@ export function RecapPanel({
                         {editing === "objective" ? (
                             <input
                                 className="recap-edit-input"
-                                value={summaryObjectif}
-                                onChange={(e) => onSummaryObjectifChange(e.target.value)}
+                                value={summaryObjective}
+                                onChange={(e) => onSummaryObjectiveChange(e.target.value)}
                                 onBlur={() => setEditing(null)}
                                 autoFocus
                             />
-                        ) : tags && summaryObjectif ? (
+                        ) : tags && summaryObjective ? (
                             <TagChips
                                 tags={tags}
-                                field="objectif"
-                                values={[summaryObjectif]}
+                                field="objective"
+                                values={[summaryObjective]}
                             />
                         ) : (
                             renderValueOrPlaceholder(
-                                summaryObjectif,
+                                summaryObjective,
                                 "Will be inferred from your pitch"
                             )
                         )}
@@ -170,7 +170,7 @@ export function RecapPanel({
                         ) : tags && domainValues.length > 0 ? (
                             <TagChips
                                 tags={tags}
-                                field="domaine"
+                                field="domain"
                                 domains={domainValues}
                                 onDismiss={handleDismissDomain}
                             />
@@ -230,7 +230,7 @@ export function RecapPanel({
                         {tags && summaryOrigin ? (
                             <TagChips
                                 tags={tags}
-                                field="origine"
+                                field="origin"
                                 values={[summaryOrigin]}
                             />
                         ) : (

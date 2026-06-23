@@ -8,7 +8,7 @@ interface Sg1ValidationPanelProps {
     isProcessing: boolean;
     pitch: string;
     horizonLabel: string;
-    objectif: string;
+    objective: string;
     domains: string;
     impact: string;
     origin: string;
@@ -24,7 +24,7 @@ export function Sg1ValidationPanel({
     isProcessing,
     pitch,
     horizonLabel,
-    objectif,
+    objective,
     domains,
     impact,
     origin,
@@ -32,7 +32,7 @@ export function Sg1ValidationPanel({
     onClose,
     onGo,
 }: Sg1ValidationPanelProps) {
-    const analyzed = pitch.trim().length > 20 && objectif.trim() !== "" && domains.trim() !== "" && impact.trim() !== "" && origin.trim() !== "";
+    const analyzed = pitch.trim().length > 20 && objective.trim() !== "" && domains.trim() !== "" && impact.trim() !== "" && origin.trim() !== "";
     const noDuplicate = !hasDuplicates;
 
     return (
@@ -58,7 +58,7 @@ export function Sg1ValidationPanel({
                             title="Validation of Business Need"
                             subtitle="Review and confirm the business need before proceeding to discovery"
                             summaryItems={[
-                                { label: "OBJECTIVE", value: objectif || "Pending" },
+                                { label: "OBJECTIVE", value: objective || "Pending" },
                                 { label: "DOMAINS", value: domains || "Pending" },
                                 { label: "IMPACT", value: impact || "Pending" },
                                 { label: "ORIGIN", value: origin || "Pending" },

@@ -35,7 +35,7 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
         "user": (
             "Business need:\n"
             "- Pitch: {{pitch}}\n"
-            "- Objective: {{objectif}}\n"
+            "- Objective: {{objective}}\n"
             "- Expected impact: {{impact}}\n"
             "- Domains: {{domains}}\n\n"
             "Selected solution:\n"
@@ -50,8 +50,8 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "- Resources needed: {{resources_needed}}\n"
             "- Fit score (1-10): {{fit_score}}\n"
             "- Fit justification: {{fit_justification}}\n"
-            "- IVI scores (1-5): maturite={{eval_maturite}}, expertise={{eval_expertise}}, duree={{eval_duree}}, impact={{eval_impact}}\n"
-            "- IVI justifications: maturite — {{eval_maturite_justification}} | expertise — {{eval_expertise_justification}} | duree — {{eval_duree_justification}} | impact — {{eval_impact_justification}}\n\n"
+            "- IVI scores (1-5): maturity={{eval_maturity}}, expertise={{eval_expertise}}, duration={{eval_duration}}, impact={{eval_impact}}\n"
+            "- IVI justifications: maturity — {{eval_maturity_justification}} | expertise — {{eval_expertise_justification}} | duration — {{eval_duration_justification}} | impact — {{eval_impact_justification}}\n\n"
             "Recommendation mode: {{recommendation_mode}}\n"
             "{{mode_instructions}}\n"
             "Return this exact JSON structure:\n"
@@ -90,28 +90,27 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
     },
     "gap-analysis": {
         "system": (
-            "You are a senior DXC qualification analyst preparing evidence for a client steering committee.\n"
             "Perform a structured gap analysis between a business need and a proposed DXC solution.\n"
-            "Produce IVI qualification scores and client-ready rationales that cite concrete facts — "
-            "never marketing slogans or generic labels.\n"
-            "Return ONLY valid JSON — no markdown, no explanation, no preamble."
+            "Produce IVI qualification scores and client-ready rationales that cite concrete facts. "
+            "Do not use marketing slogans or generic labels.\n\n"
+            "Return ONLY valid JSON. No markdown, no explanation, no preamble."
         ),
         "user": (
             "Business need:\n\n"
             "Pitch: {{pitch}}\n"
-            "Objective: {{objectif}}\n"
+            "Objective: {{objective}}\n"
             "Expected impact: {{impact}}\n"
             "Domain: {{domains}}\n"
-            "Downstream constraints: {{constraints}}\n\n"
+            "\n"
             "Proposed DXC solution:\n\n"
             "Name: {{solution_name}}\n"
             "Description: {{solution_description}}\n"
             "Current features: {{solution_features}}\n"
             "Business impact: {{solution_business_impact}}\n"
             "Maturity: {{solution_maturity}}\n\n"
-            "DXC documented capabilities (from catalog — use this to score expertise):\n\n"
+            "DXC documented capabilities from catalog, used as the only evidence for expertise scoring:\n\n"
             "{{dxc_expertise_context}}\n\n"
-            "Return this exact JSON structure:\n"
+            "Return this exact JSON structure:\n\n"
             "{\n"
             '  "features_matching": ["feature that directly addresses the need", "..."],\n'
             '  "features_missing": ["capability the need requires but solution lacks", "..."],\n'
@@ -122,61 +121,63 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             '  "fit_score": <integer 1-10 where 10 = perfect fit>,\n'
             '  "fit_justification": "<client rationale — see Justification rules>",\n'
             '  "evaluation_scores": {\n'
-            '    "maturite": <integer 1-5 strictly from catalog solution maturity>,\n'
-            '    "maturite_justification": "<client rationale — see Justification rules>",\n'
+            '    "maturity": <integer 1-5 strictly from catalog solution maturity>,\n'
+            '    "maturity_justification": "<client rationale — see Justification rules>",\n'
             '    "expertise": <integer 1-5, DXC expertise to deliver this solution: '
-            'score ONLY from the DXC documented capabilities section above — '
+            'score ONLY from the DXC documented capabilities section above; '
             '5=strong documented capability in this domain, 1=no evidence of capability>,\n'
             '    "expertise_justification": "<client rationale — see Justification rules>",\n'
-            '    "duree": <integer 1-5, delivery speed: 5=fast/simple, 1=long/complex>,\n'
-            '    "duree_justification": "<client rationale — see Justification rules>",\n'
+            '    "duration": <integer 1-5, delivery speed: 5=fast/simple, 1=long/complex>,\n'
+            '    "duration_justification": "<client rationale — see Justification rules>",\n'
             '    "impact": <integer 1-5, business impact on the need: 1=marginal, 5=transformational>,\n'
             '    "impact_justification": "<client rationale — see Justification rules>"\n'
             '  }\n'
             "}\n\n"
-            "Gap lists (populate BEFORE writing justifications):\n\n"
-            "- features_matching: 2–5 concrete overlaps with the business need — not generic claims.\n"
-            "- features_missing: 2–5 capabilities the need requires but the solution structurally lacks.\n"
-            "  Do NOT put risks here.\n"
-            "- resources_needed: 2–5 practical requirements (people, integrations, data, infrastructure).\n"
-            "- risks: 1–4 implementation/delivery risks, each with severity exactly 'low', 'medium', or 'high'.\n"
-            "  Do NOT duplicate features_missing items as risks.\n\n"
+            "Gap lists:\n\n"
+            "- features_matching: 2 to 5 concrete overlaps with the business need. Do not use generic claims.\n"
+            "- features_missing: 2 to 5 capabilities the need requires but the solution structurally lacks. "
+            "Do not put risks here.\n"
+            "- resources_needed: 2 to 5 practical requirements such as people, integrations, data, "
+            "infrastructure, governance, or security.\n"
+            "- risks: 1 to 4 implementation or delivery risks. Each severity must be exactly low, medium, "
+            "or high. Do not duplicate features_missing items as risks.\n\n"
             "Scoring rules:\n\n"
-            "- fit_score: honest and calibrated — not optimistic by default.\n"
-            "- evaluation_scores.maturite: MUST match catalog maturity tier only "
-            "(PoC=2, Pilot=3, Production=4, Multi-ref=5).\n"
-            "- evaluation_scores.expertise: derived ONLY from 'DXC documented capabilities' above. "
-            "If the domain or capability is absent, score conservatively (1 or 2).\n"
-            "- evaluation_scores.duree: 5 = deliverable quickly with low integration load; "
-            "1 = long multi-quarter effort driven by missing capabilities and heavy resources.\n"
-            "- evaluation_scores.impact: how transformational this solution is for the stated business need "
-            "(1=marginal, 5=transformational).\n"
+            "- fit_score must be honest and calibrated, not optimistic by default.\n"
+            "- evaluation_scores.maturity MUST match the catalog maturity tier only: "
+            "PoC=2, Pilot=3, Production=4, Multi-ref=5.\n"
+            "- evaluation_scores.expertise MUST be derived only from the DXC documented capabilities "
+            "section above. Do not use general knowledge about DXC. If the domain or capability is "
+            "absent, score conservatively as 1 or 2.\n"
+            "- evaluation_scores.duration: 5 means deliverable quickly with low integration load; "
+            "1 means long multi-quarter effort driven by missing capabilities or heavy resources.\n"
+            "- evaluation_scores.impact measures how transformational the solution is for the stated "
+            "business need and expected impact.\n"
             "- All score fields must be integers in their allowed ranges.\n"
-            "- If uncertain, choose conservative scores and reflect uncertainty in missing/resources lists.\n\n"
-            "Justification rules (fit_justification and every *_justification in evaluation_scores):\n\n"
-            "- Write for a client audience: professional, specific, defensible in a review meeting.\n"
-            "- Exactly 2 sentences, 35–60 words total.\n"
-            "- Sentence 1: explain WHY this score was assigned, linked to the business need "
-            "(objective / expected impact).\n"
-            "- Sentence 2: cite at least one named item from your own output "
-            "(features_matching, features_missing, resources_needed, catalog maturity label, "
-            "or a specific DXC documented capability).\n"
-            "- The cited evidence must appear verbatim or paraphrased from the lists you return.\n"
-            "- Forbidden without evidence: vague phrases such as 'strong capabilities', "
-            "'significant potential', 'moderate speed', 'pilot maturity' alone, or adjectives "
-            "with no named fact.\n"
-            "- Do not repeat the dimension name or score number in the text.\n\n"
-            "Justification examples (style only — write fresh text for this case):\n\n"
+            "- If uncertain, choose conservative scores and reflect uncertainty in missing features, "
+            "resources, or risks.\n\n"
+            "Justification rules:\n\n"
+            "- Write for a client audience: professional, specific, and defensible in a review meeting.\n"
+            "- fit_justification and every *_justification field must contain exactly 2 sentences.\n"
+            "- Each justification must be 35 to 60 words total.\n"
+            "- Sentence 1 must explain why the score was assigned, linked to the business need, "
+            "objective or expected impact.\n"
+            "- Sentence 2 must cite at least one named item from your own output: features_matching, "
+            "features_missing, resources_needed, catalog maturity label, or DXC documented capability.\n"
+            "- The cited evidence must appear verbatim or clearly paraphrased from the lists you return.\n"
+            "- Do not use vague phrases such as strong capabilities, significant potential, moderate speed, "
+            "or pilot maturity unless supported by named evidence.\n"
+            "- Do not repeat the dimension name or score number in the justification text.\n\n"
+            "Justification examples, style only:\n\n"
             '- impact_justification: "The solution directly supports financial ROI modelling for the '
             "stated revenue-growth objective through scenario dashboards. Gaps remain on direct revenue "
             'tracking and market-opportunity analysis, which limits a top score."\n'
-            '- maturite_justification: "Catalog maturity is Pilot, so the offer is validated in limited '
+            '- maturity_justification: "Catalog maturity is Pilot, so the offer is validated in limited '
             "scope but not yet enterprise-hardened. Missing production-grade revenue analytics "
             'capabilities reinforce a mid-tier readiness level."\n'
             '- expertise_justification: "DXC documents data-science and cloud delivery capabilities in '
             "this domain, covering model development and platform integration. Delivery still depends on "
             'integration with existing financial systems listed as a required resource."\n'
-            '- duree_justification: "Delivery is moderate because core dashboards can be stood up quickly, '
+            '- duration_justification: "Delivery is moderate because core dashboards can be stood up quickly, '
             "but revenue-tracking gaps and financial-system integration add implementation work. "
             'Resource needs for a data scientist and platform integration extend the timeline."\n\n'
             "- Return JSON only."
@@ -217,7 +218,7 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "Your job is to classify business need pitches into a structured taxonomy "
             "and score your confidence in each classification.\n\n"
             "## TAXONOMY DEFINITIONS\n\n"
-            "### objectif (pick exactly ONE)\n"
+            "### objective (pick exactly ONE)\n"
             "- cost_reduction: The pitch focuses on reducing costs, eliminating waste, automating manual work, "
             "optimizing resources, or improving operational efficiency.\n"
             "- cx_improvement: The pitch focuses on improving customer experience, user satisfaction, "
@@ -226,22 +227,22 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "disaster recovery, fraud detection, or regulatory adherence.\n"
             "- market_opportunity: The pitch focuses on capturing new markets, launching new products/services, "
             "generating new revenue streams, competitive advantage, or strategic positioning.\n\n"
-            "### domaine (pick ONE or MORE from this exact list)\n"
-            "- IA: Artificial intelligence, machine learning, NLP, computer vision, generative AI, chatbots, "
+            "### domain (pick ONE or MORE from this exact list)\n"
+            "- AI: Artificial intelligence, machine learning, NLP, computer vision, generative AI, chatbots, "
             "predictive models.\n"
             "- Cloud: Cloud migration, hybrid cloud, multi-cloud, SaaS, PaaS, IaaS, containerisation, "
             "serverless.\n"
-            "- Cybersecurite: Security, zero-trust, SOC, SIEM, penetration testing, encryption, identity "
+            "- Cybersecurity: Security, zero-trust, SOC, SIEM, penetration testing, encryption, identity "
             "management, compliance (RGPD, ISO 27001).\n"
             "- Data: Data engineering, data lakes, data warehouses, BI, analytics, data governance, "
             "data quality, ETL/ELT pipelines.\n"
-            "- RH: Human resources, recruitment, training, talent management, employee engagement, "
+            "- HR: Human resources, recruitment, training, talent management, employee engagement, "
             "workforce planning, HRIS.\n"
             "- Finance: Accounting, financial reporting, budgeting, treasury, invoicing, payment processing, "
             "financial compliance.\n"
             "- Operations: Supply chain, logistics, manufacturing, procurement, facilities, project management, "
             "process automation (RPA), DevOps.\n"
-            "- Autre: Anything that does not clearly fit the above categories.\n\n"
+            "- Other: Anything that does not clearly fit the above categories.\n\n"
             "### impact (pick ONE or MORE from this exact list)\n"
             "- Revenue: Directly increases top-line revenue, monetisation, upsell, cross-sell.\n"
             "- Cost: Reduces operational costs, headcount, infrastructure spend, or manual effort.\n"
@@ -249,28 +250,28 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "reputational damage.\n"
             "- CustomerExperience: Improves NPS, user satisfaction, response times, self-service, or "
             "client retention.\n\n"
-            "### origine (pick exactly ONE)\n"
-            "- enjeu_marche: Driven by market trends, competitive pressure, industry regulations, or "
+            "### origin (pick exactly ONE)\n"
+            "- market_driver: Driven by market trends, competitive pressure, industry regulations, or "
             "emerging technologies.\n"
-            "- probleme_operationnel: Driven by an internal pain point, inefficiency, recurring incident, "
+            "- operational_problem: Driven by an internal pain point, inefficiency, recurring incident, "
             "or technical debt.\n"
-            "- demande_client: Driven by explicit client feedback, feature request, contract requirement, "
+            "- client_request: Driven by explicit client feedback, feature request, contract requirement, "
             "or customer complaint.\n\n"
             "## CONFIDENCE SCORING\n"
             "Every classification must include a confidence level:\n"
             "- high: the pitch explicitly and unambiguously signals this classification\n"
             "- medium: the pitch implies this classification but is not fully explicit\n"
             "- low: the classification is inferred from weak, vague, or ambiguous signals\n\n"
-            "For domaine and impact (multi-value fields), assign confidence PER ITEM independently.\n\n"
+            "For domain and impact (multi-value fields), assign confidence PER ITEM independently.\n\n"
             "## RULES\n"
             "1. Respond ONLY with valid JSON. No explanation, no markdown fences, no commentary.\n"
             "2. Use ONLY the exact enum values listed above (case-sensitive).\n"
-            "3. domaine and impact MUST be arrays with at least one element.\n"
-            "4. objectif and origine MUST be single objects with 'value' and 'confidence' keys.\n"
-            "5. Each item in domaine and impact MUST be an object with 'value' and 'confidence' keys.\n"
-            "6. When the pitch is ambiguous, prefer the most specific classification over 'Autre'.\n"
+            "3. domain and impact MUST be arrays with at least one element.\n"
+            "4. objective and origin MUST be single objects with 'value' and 'confidence' keys.\n"
+            "5. Each item in domain and impact MUST be an object with 'value' and 'confidence' keys.\n"
+            "6. When the pitch is ambiguous, prefer the most specific classification over 'Other'.\n"
             "7. When the pitch spans multiple objectives, pick the PRIMARY one.\n"
-            "8. The pitch will typically be in French. Classify regardless of language."
+            "8. The pitch may be written in a language other than English. Classify regardless of language."
         ),
         "user": (
             "Classify this business need pitch:\n\n"
@@ -282,10 +283,10 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "Return ONLY this JSON structure (no other text):\n"
             "{\n"
             '  "tags": {\n'
-            '    "objectif": { "value": "cost_reduction | cx_improvement | risk_mitigation | market_opportunity", "confidence": "low | medium | high" },\n'
-            '    "domaine":  [ { "value": "IA | Cloud | Cybersecurite | Data | RH | Finance | Operations | Autre", "confidence": "low | medium | high" } ],\n'
+            '    "objective": { "value": "cost_reduction | cx_improvement | risk_mitigation | market_opportunity", "confidence": "low | medium | high" },\n'
+            '    "domain":  [ { "value": "AI | Cloud | Cybersecurity | Data | HR | Finance | Operations | Other", "confidence": "low | medium | high" } ],\n'
             '    "impact":   [ { "value": "Revenue | Cost | Risk | CustomerExperience", "confidence": "low | medium | high" } ],\n'
-            '    "origine":  { "value": "enjeu_marche | probleme_operationnel | demande_client", "confidence": "low | medium | high" }\n'
+            '    "origin":  { "value": "market_driver | operational_problem | client_request", "confidence": "low | medium | high" }\n'
             "  }\n"
             "}\n\n"
             "### EXAMPLES\n\n"
@@ -294,20 +295,20 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "Answer:\n"
             "{\n"
             '  "tags": {\n'
-            '    "objectif": { "value": "cost_reduction", "confidence": "high" },\n'
-            '    "domaine":  [ { "value": "Finance", "confidence": "high" }, { "value": "IA", "confidence": "medium" } ],\n'
+            '    "objective": { "value": "cost_reduction", "confidence": "high" },\n'
+            '    "domain":  [ { "value": "Finance", "confidence": "high" }, { "value": "AI", "confidence": "medium" } ],\n'
             '    "impact":   [ { "value": "Cost", "confidence": "high" }, { "value": "Risk", "confidence": "medium" } ],\n'
-            '    "origine":  { "value": "probleme_operationnel", "confidence": "high" }\n'
+            '    "origin":  { "value": "operational_problem", "confidence": "high" }\n'
             "  }\n"
             "}\n\n"
             'Pitch: "We want to improve things internally."\n'
             "Answer:\n"
             "{\n"
             '  "tags": {\n'
-            '    "objectif": { "value": "cost_reduction", "confidence": "low" },\n'
-            '    "domaine":  [ { "value": "Operations", "confidence": "low" } ],\n'
+            '    "objective": { "value": "cost_reduction", "confidence": "low" },\n'
+            '    "domain":  [ { "value": "Operations", "confidence": "low" } ],\n'
             '    "impact":   [ { "value": "Cost", "confidence": "low" } ],\n'
-            '    "origine":  { "value": "probleme_operationnel", "confidence": "low" }\n'
+            '    "origin":  { "value": "operational_problem", "confidence": "low" }\n'
             "  }\n"
             "}\n\n"
             "Now classify the pitch above."
@@ -324,7 +325,7 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "4. Reformulation: rewrite the pitch more clearly (max 20 words).\n"
             "5. Business Precision: add a measurable outcome or target.\n"
             "6. Value Angle: reframe around ROI or strategic value.\n"
-            "7. The pitch will typically be in French. Write suggestions in English."
+            "7. The pitch may be written in a language other than English. Write suggestions in English."
         ),
         "user": (
             "Suggest improvements for this business need pitch:\n\n"

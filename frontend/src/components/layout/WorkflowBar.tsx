@@ -288,7 +288,7 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
     // display a different status than what's in the DB (e.g. /discovery?sg1=completed
     // forces "submitted" even if the DB has already advanced to in_qualification/selected).
     const status = propStatus || (need?.status as Status) || "draft";
-    const ipmTitle = (need?.tags?.objectif ? (STATUS_LABELS[status] + " Initiative") : propTitle) || "IPM — Innovation Progress Model";
+    const ipmTitle = (need?.tags?.objective ? (STATUS_LABELS[status] + " Initiative") : propTitle) || "IPM — Innovation Progress Model";
 
     const { completedSteps, completedGates, currentActiveGate } = useMemo(
         () => deriveStatusState(status, currentStep),

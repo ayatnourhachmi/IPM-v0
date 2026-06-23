@@ -4,7 +4,7 @@ import type { Horizon, Suggestion } from "@/lib/types";
 import { HORIZON_LABELS } from "@/lib/types";
 import { PhaseLoading } from "@/components/sourcing/PhaseLoading";
 
-const HORIZONS: Horizon[] = ["court_terme", "moyen_terme", "long_terme"];
+const HORIZONS: Horizon[] = ["short_term", "mid_term", "long_term"];
 
 interface BusinessNeedStepProps {
     horizon: Horizon | null;

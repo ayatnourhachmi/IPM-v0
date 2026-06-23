@@ -90,7 +90,7 @@ export function NeedCard({ need, onUpdateStatus }: NeedCardProps) {
                 <span className="tag-chip amber" style={{ fontSize: 10 }}>
                     {HORIZON_LABELS[need.horizon].label}
                 </span>
-                {need.tags.domaine.slice(0, 3).map((d) => (
+                {need.tags.domain.slice(0, 3).map((d) => (
                     <span key={d.value} className="tag-chip blue" style={{ fontSize: 10 }}>{d.value}</span>
                 ))}
             </div>

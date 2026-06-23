@@ -1,6 +1,6 @@
 """Deterministic calendar duration from gap size, staffing, and catalog maturity.
 
-``duration_score`` follows IVI *duree* semantics: **5 = fast / low calendar time**,
+``duration_score`` follows IVI *duration* semantics: **5 = fast / low calendar time**,
 **1 = long / multi-quarter**. It is derived from ``duration_months`` so the two stay aligned.
 """
 
@@ -21,7 +21,7 @@ class DurationEstimate:
 
 
 def _months_to_duration_score(months: int) -> int:
-    """Map integer months to IVI-style duree (5 = fastest)."""
+    """Map integer months to IVI-style duration (5 = fastest)."""
     if months <= 2:
         return 5
     if months <= 4:

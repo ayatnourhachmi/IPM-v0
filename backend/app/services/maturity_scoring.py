@@ -1,4 +1,4 @@
-"""Catalog maturity → IVI maturité score (1–5). Deterministic parsing of catalog/Excel labels only.
+"""Catalog maturity → IVI maturity score (1–5). Deterministic parsing of catalog/Excel labels only.
 
 Scores are fixed lookup — no model inference. Unknown labels yield ``None`` so callers avoid
 inventing a tier.
@@ -46,7 +46,7 @@ def normalize_maturity(raw: object) -> Optional[str]:
 
 
 def maturity_score(raw: object) -> Optional[int]:
-    """Return maturité score from catalog maturity text, or ``None`` if unknown."""
+    """Return maturity score from catalog maturity text, or ``None`` if unknown."""
     key = normalize_maturity(raw)
     if key is None:
         logger.debug("Maturity scoring: unrecognized catalog maturity label %r", raw)

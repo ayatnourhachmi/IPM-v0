@@ -5,9 +5,9 @@ the full response, but these overrides are injected into the prompt as
 explicit constraints and applied post-parse to guarantee correctness.
 
 Rule priority (highest → lowest):
-  1. Client reference detected  → origine = demande_client
-  2. Measurable KPI detected    → origine = probleme_operationnel
-  3. Data keywords w/o inference verbs → IA excluded from domaine
+  1. Client reference detected  → origin = client_request
+  2. Measurable KPI detected    → origin = operational_problem
+  3. Data keywords w/o inference verbs → AI excluded from domain
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ _CLIENT_PATTERNS: list[str] = [
     r"\bservice\s+level\s+agreement\b",              # full SLA phrase
 ]
 
-# Strong inference / AI verbs — required to classify as IA domain
+# Strong inference / AI verbs — required to classify as AI domain
 _INFERENCE_PATTERNS: list[str] = [
     r"\bpredict\w*\b",        # predict, prediction, predictive
     r"\bclassif\w*\b",        # classify, classifier, classification
@@ -79,7 +79,7 @@ _INFERENCE_PATTERNS: list[str] = [
     r"\bgenai\b",
 ]
 
-# Data engineering keywords — without inference verbs → exclude IA
+# Data engineering keywords — without inference verbs → exclude AI
 _DATA_PATTERNS: list[str] = [
     r"\bdashboard\w*\b",
     r"\breport(?:ing)?\b",
@@ -103,28 +103,28 @@ _DATA_PATTERNS: list[str] = [
 class RuleHints:
     """Overrides produced by the deterministic rule engine."""
 
-    origine: Optional[str] = None
-    exclude_domaine: list[str] = field(default_factory=list)
+    origin: Optional[str] = None
+    exclude_domain: list[str] = field(default_factory=list)
     reasons: dict[str, str] = field(default_factory=dict)  # rule_id → human reason
 
     @property
     def has_overrides(self) -> bool:
-        return bool(self.origine or self.exclude_domaine)
+        return bool(self.origin or self.exclude_domain)
 
     def to_prompt_context(self) -> str:
         """Render override instructions for injection into the LLM prompt."""
         if not self.has_overrides:
             return "None — classify freely."
         lines = []
-        if self.origine:
+        if self.origin:
             reason = next(iter(self.reasons.values()), "rule match")
             lines.append(
-                f'- origine MUST be exactly "{self.origine}" '
+                f'- origin MUST be exactly "{self.origin}" '
                 f"({reason}). Do not override this."
             )
-        for dom in self.exclude_domaine:
+        for dom in self.exclude_domain:
             lines.append(
-                f'- "{dom}" MUST NOT appear in domaine '
+                f'- "{dom}" MUST NOT appear in domain '
                 f"({self.reasons.get('ia_vs_data', 'rule match')})."
             )
         return "\n".join(lines)
@@ -139,31 +139,31 @@ def apply_rules(pitch: str) -> RuleHints:
     hints = RuleHints()
     text = pitch.lower()
 
-    # ── Rule 1: measurable KPI → origine = probleme_operationnel ─────────────
+    # ── Rule 1: measurable KPI → origin = operational_problem ─────────────
     if any(re.search(p, text) for p in _KPI_PATTERNS):
-        hints.origine = "probleme_operationnel"
+        hints.origin = "operational_problem"
         hints.reasons["kpi_detected"] = (
-            "Measurable KPI / numeric target detected → probleme_operationnel"
+            "Measurable KPI / numeric target detected → operational_problem"
         )
 
-    # ── Rule 2: client reference → demande_client (overrides Rule 1) ─────────
+    # ── Rule 2: client reference → client_request (overrides Rule 1) ─────────
     if any(re.search(p, text) for p in _CLIENT_PATTERNS):
-        hints.origine = "demande_client"
+        hints.origin = "client_request"
         hints.reasons.pop("kpi_detected", None)
         hints.reasons["client_detected"] = (
-            "Client / customer reference detected → demande_client "
+            "Client / customer reference detected → client_request "
             "(overrides KPI rule)"
         )
 
-    # ── Rule 3: Data keywords without inference verbs → exclude IA ───────────
+    # ── Rule 3: Data keywords without inference verbs → exclude AI ───────────
     has_inference = any(re.search(p, text) for p in _INFERENCE_PATTERNS)
     has_data = any(re.search(p, text) for p in _DATA_PATTERNS)
 
     if has_data and not has_inference:
-        hints.exclude_domaine.append("IA")
+        hints.exclude_domain.append("AI")
         hints.reasons["ia_vs_data"] = (
             "Data engineering keywords present but no AI inference verbs → "
-            "IA excluded from domaine"
+            "AI excluded from domain"
         )
 
     if hints.has_overrides:

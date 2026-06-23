@@ -140,13 +140,13 @@ def _impact_split_tokens(labels: list[str]) -> set[str]:
 def build_need_match_profile(
     *,
     pitch: str,
-    objectif_str: str,
+    objective_str: str,
     domains_list: list[str],
     impact_parts: list[str],
 ) -> dict[str, object]:
     """Signals shared across all catalogue rows for one POST /catalog-search."""
 
-    pitch_blob = " ".join(filter(None, [(pitch or "").strip(), (objectif_str or "").strip()]))
+    pitch_blob = " ".join(filter(None, [(pitch or "").strip(), (objective_str or "").strip()]))
     pitch_folded = _fold(pitch_blob)
     pitch_lex = _tokens(pitch_blob)
 
@@ -189,7 +189,7 @@ def _catalog_bundle_tokens(
 def _domain_tag_match(domain_slugs: set[str], cat_toks: set[str], cat_folded: str) -> bool:
     if "cloud" in domain_slugs and (cat_toks & _CLOUD_LEXICON):
         return True
-    if "cybersecurite" in domain_slugs:
+    if "cybersecurity" in domain_slugs:
         if cat_toks & {"security", "cyber", "compliance"}:
             return True
         if "zero-trust" in cat_folded.replace(" ", ""):
