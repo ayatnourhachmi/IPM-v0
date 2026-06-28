@@ -1,6 +1,6 @@
-# IPM — Innovation Progress Model
+# IPM — Innovation Process Model
 
-IPM is an AI-assisted innovation intake and qualification workspace. A user submits a business need, the platform classifies and enriches it with AI, searches the DXC catalog, scores candidate solutions, guides selection through stage gates, and produces delivery-ready recommendations and exportable documents.
+IPM is an AI-assisted innovation intake and qualification workspace. A user submits a business need, the platform classifies and enriches it with AI, searches the DXC catalog, scores candidate solutions, guides selection through validation checkpoints, and produces delivery-ready recommendations and exportable documents.
 
 The current implementation is a single-role experience for **CLIENT DXC**. There is no authentication or RBAC in this version.
 
@@ -11,18 +11,18 @@ The current implementation is a single-role experience for **CLIENT DXC**. There
 The workflow bar is sticky across the app and mirrors the operational path:
 
 ```
-Sourcing → SG-1 → Discovery → SG-2 → Evaluation → Selection → SG-3 → Recos → SG-4 → Done
+Sourcing → VC-1 → Discovery → VC-2 → Evaluation → Selection → VC-3 → Recos → VC-4 → Done
 ```
 
 ### Route Map
 
 | Route | Step | What happens |
 |---|---|---|
-| `/sourcing` | Business Need | Capture pitch and horizon, classify with AI, validate SG-1 |
-| `/discovery` | Discovery | Search DXC catalog, run gap analysis, validate SG-2 |
+| `/sourcing` | Business Need | Capture pitch and horizon, classify with AI, validate VC-1 |
+| `/discovery` | Discovery | Search DXC catalog, run gap analysis, validate VC-2 |
 | `/evaluation` | Evaluation | Read selected discovery solutions and auto-score them from gap analysis |
-| `/selection` | Selection | Choose solutions that move to delivery, validate SG-3 |
-| `/recos` | Recos | Generate technical, organizational, and KPI recommendations, validate SG-4, export PDF/DOCX |
+| `/selection` | Selection | Choose solutions that move to delivery, validate VC-3 |
+| `/recos` | Recos | Generate technical, organizational, and KPI recommendations, validate VC-4, export PDF/DOCX |
 | `/dashboard` | Dashboard | View the current IPM list and status |
 
 State is passed primarily through:
@@ -31,7 +31,7 @@ State is passed primarily through:
 
 Key localStorage keys:
 - `ipm_selected_solutions` — selected solutions from Discovery
-- `ipm_sg2_state` — SG-2 discovery validation state
+- `ipm_sg2_state` — VC-2 discovery validation state
 - `ipm_evaluation_state` — ranked evaluation snapshot
 - `ipm_delivery_solutions` — final delivery selections for Recos
 
