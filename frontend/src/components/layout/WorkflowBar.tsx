@@ -1,11 +1,11 @@
 /**
- * WorkflowBar — Full IPM pipeline visualization with 3 phases and 4 stage gates.
- * Pipeline: BN → [SG-1] → Discovery → [SG-2] → Evaluation → Selection → [SG-3] → Recos → [SG-4] → PDF/DOC
+ * WorkflowBar — Full IPM pipeline visualization with 3 phases and 4 validation checkpoints.
+ * Pipeline: BN → [VC-1] → Discovery → [VC-2] → Evaluation → Selection → [VC-3] → Recos → [VC-4] → PDF/DOC
  *
  * Phase groupings:
- *   SOURCING:      Business Need, SG-1, Discovery
- *   QUALIFICATION: SG-2, Evaluation, Selection, SG-3
- *   DELIVERY:      Recos, SG-4, PDF/DOC
+ *   SOURCING:      Business Need, VC-1, Discovery
+ *   QUALIFICATION: VC-2, Evaluation, Selection, VC-3
+ *   DELIVERY:      Recos, VC-4, PDF/DOC
  *
  *   Row 1: IPM title + status badge + "Awaiting [gate] Validation"
  *   Region: Full animated diagram
@@ -124,8 +124,8 @@ function deriveStatusState(status: Status | undefined, currentStep: PipelineStep
         currentActiveGate = "SG-1";
     } else if (status === "submitted") {
         completedSteps.add("business-need");
-        completedGates.add("SG-1");   // SG-1 was passed — show ✓
-        currentActiveGate = "SG-2";   // next decision point
+        completedGates.add("SG-1");   // VC-1 was passed — show ✓
+        currentActiveGate = "SG-2";   // next validation checkpoint
     } else if (status === "solutions_reviewed") {
         completedSteps.add("business-need");
         completedSteps.add("discovery");
@@ -143,7 +143,7 @@ function deriveStatusState(status: Status | undefined, currentStep: PipelineStep
         completedGates.add("SG-3");
         currentActiveGate = "SG-4";
     } else if (status === "in_qualification") {
-        // User has passed SG-2 — Discovery done, Evaluation is the current step, SG-3 upcoming
+        // User has passed VC-2 — Discovery done, Evaluation is the current step, VC-3 upcoming
         completedSteps.add("business-need");
         completedSteps.add("discovery");
         if (currentStep === "selection" || currentStep === "recos" || currentStep === "sg3" || currentStep === "sg4" || currentStep === "export") {
@@ -153,7 +153,7 @@ function deriveStatusState(status: Status | undefined, currentStep: PipelineStep
         completedGates.add("SG-2");
         currentActiveGate = "SG-3";
     } else if (status === "delivery") {
-        // SG-4 passed — delivery validated, export unlocked, pipeline done
+        // VC-4 passed — delivery validated, export unlocked, pipeline done
         completedSteps.add("business-need");
         completedGates.add("SG-1");
         completedSteps.add("discovery");
@@ -195,7 +195,7 @@ function getWorkflowTarget(step: SourcingWorkflowStepId, ipmId?: string) {
 }
 
 // ---------------------------------------------------------------------------
-// SG-2 Solution Recap (reads from localStorage)
+// VC-2 Solution Recap (reads from localStorage)
 // ---------------------------------------------------------------------------
 
 function SolutionRecap() {
@@ -288,7 +288,7 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
     // display a different status than what's in the DB (e.g. /discovery?sg1=completed
     // forces "submitted" even if the DB has already advanced to in_qualification/selected).
     const status = propStatus || (need?.status as Status) || "draft";
-    const ipmTitle = (need?.tags?.objective ? (STATUS_LABELS[status] + " Initiative") : propTitle) || "IPM — Innovation Progress Model";
+    const ipmTitle = (need?.tags?.objective ? (STATUS_LABELS[status] + " Initiative") : propTitle) || "IPM — Innovation Process Model";
 
     const { completedSteps, completedGates, currentActiveGate } = useMemo(
         () => deriveStatusState(status, currentStep),
@@ -332,9 +332,9 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
     const handleGo = useCallback(async () => {
         if (!activeGate || !ipmId) return;
 
-        // SG-4 is frontend-only — no backend status change
+        // VC-4 is frontend-only — no backend status change
         if (activeGate === "SG-4") {
-            toast.success("SG-4 Validated", { description: "Export documents are now available." });
+            toast.success("VC-4 Validated", { description: "Export documents are now available." });
             setActiveGate(null);
             return;
         }
@@ -493,7 +493,7 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                         }}>
                             {currentStep === "sg1" ? (
                                 <>
-                                    <span style={{ color: "var(--wf-sourcing)", fontFamily: "var(--font-mono)" }}>◆ SG-1</span>
+                                    <span style={{ color: "var(--wf-sourcing)", fontFamily: "var(--font-mono)" }}>◆ VC-1</span>
                                     {" "}— review duplicates and validate before proceeding
                                 </>
                             ) : currentStep === "discovery" ? (
@@ -574,7 +574,7 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                 maxWidth: "100%",
                                 boxSizing: "border-box",
                             }}>
-                                {/* Phase 1: Sourcing — BN, SG-1, Discovery */}
+                                {/* Phase 1: Sourcing — BN, VC-1, Discovery */}
                                 <PhaseContainer
                                     title="Sourcing"
                                     color="blue"
@@ -584,15 +584,15 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                 >
                                     <WorkflowNode label="Business Need" index="01" color="blue" isCompleted={completedSteps.has("business-need")} delay={0.1} />
                                     <Connector delay={0.2} vertical={v} />
-                                    <StageGate label="SG-1" color="blue" isActive={currentActiveGate === "SG-1" || currentStep === "sg1"} isCompleted={completedGates.has("SG-1")} delay={0.3} onClick={isInteractive ? () => setActiveGate("SG-1") : undefined} />
+                                    <StageGate label="VC-1" color="blue" isActive={currentActiveGate === "SG-1" || currentStep === "sg1"} isCompleted={completedGates.has("SG-1")} delay={0.3} onClick={isInteractive ? () => setActiveGate("SG-1") : undefined} />
                                     <Connector delay={0.35} vertical={v} />
                                     <WorkflowNode label="Discovery" index="02" color="blue" isActive={currentStep === "discovery" && !completedSteps.has("discovery")} isCompleted={completedSteps.has("discovery")} delay={0.4} />
                                 </PhaseContainer>
 
                                 <Connector delay={0.45} vertical={v} />
 
-                                {/* SG-2: Entry gate into Qualification (outside phase box) */}
-                                <StageGate label="SG-2" color="emerald" isActive={currentActiveGate === "SG-2"} isCompleted={completedGates.has("SG-2")} isMuted={!sg2Reached} delay={0.5} onClick={isInteractive ? () => setActiveGate("SG-2") : undefined} />
+                                {/* VC-2: Entry checkpoint into Qualification (outside phase box) */}
+                                <StageGate label="VC-2" color="emerald" isActive={currentActiveGate === "SG-2"} isCompleted={completedGates.has("SG-2")} isMuted={!sg2Reached} delay={0.5} onClick={isInteractive ? () => setActiveGate("SG-2") : undefined} />
 
                                 <Connector delay={0.55} vertical={v} />
 
@@ -631,12 +631,12 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
 
                                 <Connector delay={0.75} vertical={v} />
 
-                                {/* SG-3: Exit gate from Qualification (outside phase box) */}
-                                <StageGate label="SG-3" color="emerald" isActive={currentActiveGate === "SG-3"} isCompleted={completedGates.has("SG-3")} isMuted={!sg3Reached} delay={0.8} onClick={isInteractive ? () => setActiveGate("SG-3") : undefined} />
+                                {/* VC-3: Exit checkpoint from Qualification (outside phase box) */}
+                                <StageGate label="VC-3" color="emerald" isActive={currentActiveGate === "SG-3"} isCompleted={completedGates.has("SG-3")} isMuted={!sg3Reached} delay={0.8} onClick={isInteractive ? () => setActiveGate("SG-3") : undefined} />
 
                                 <Connector delay={0.85} vertical={v} />
 
-                                {/* Phase 3: Delivery — Recos, SG-4, PDF/DOC */}
+                                {/* Phase 3: Delivery — Recos, VC-4, PDF/DOC */}
                                 <PhaseContainer
                                     title="Delivery"
                                     color="orange"
@@ -647,7 +647,7 @@ export function WorkflowBar({ currentStep, status: propStatus, onStepClick, ipmI
                                 >
                                     <WorkflowNode label="Recos" index="06" color="orange" isActive={completedGates.has("SG-3") && !completedSteps.has("recos")} isCompleted={completedSteps.has("recos")} isMuted={!phase3Reached} delay={0.9} />
                                     <Connector delay={0.95} vertical={v} />
-                                    <StageGate label="SG-4" color="orange" isActive={currentActiveGate === "SG-4"} isCompleted={completedGates.has("SG-4")} isMuted={!sg4Reached} delay={1.0} onClick={isInteractive ? () => setActiveGate("SG-4") : undefined} />
+                                    <StageGate label="VC-4" color="orange" isActive={currentActiveGate === "SG-4"} isCompleted={completedGates.has("SG-4")} isMuted={!sg4Reached} delay={1.0} onClick={isInteractive ? () => setActiveGate("SG-4") : undefined} />
                                     <Connector delay={1.05} vertical={v} />
                                     <div style={{
                                         display: "flex",

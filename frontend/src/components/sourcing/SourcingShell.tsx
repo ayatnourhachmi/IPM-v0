@@ -602,7 +602,7 @@ export function SourcingShell({
                     isProcessing={isSubmitting}
                     onBack={() => setCurrentSourcingState("business_need")}
                     onValidate={handleValidateStageGate}
-                    disabledReason={duplicates.length > 0 ? "Resolve duplicate matches before validating SG-1." : "Complete all checklist items before validating SG-1."}
+                    disabledReason={duplicates.length > 0 ? "Resolve duplicate matches before validating VC-1." : "Complete all checklist items before validating VC-1."}
                 />
             );
         }
@@ -631,7 +631,7 @@ export function SourcingShell({
                     onBack={() => setCurrentSourcingState("discovery")}
                     onValidate={handleValidateSg2}
                     isValidateDisabled={selectedSolutions.length === 0}
-                    disabledReason={selectedSolutions.length === 0 ? "Select at least one solution before validating SG-2." : undefined}
+                    disabledReason={selectedSolutions.length === 0 ? "Select at least one solution before validating VC-2." : undefined}
                 />
             );
         }

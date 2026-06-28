@@ -167,7 +167,7 @@ export function DiscoveryPanel({ needId, onSelectionChange, onCardStatesChange, 
         onCardStatesChange?.(cardStates, selectedIds.size);
     }, [cardStates, selectedIds, onCardStatesChange]);
 
-    // Persist selected catalog solutions to localStorage for SG-2 recap
+    // Persist selected catalog solutions to localStorage for VC-2 recap
     useEffect(() => {
         const selectedSolutions: StoredSelectedSolution[] = catalog1Items
             .filter(i => selectedIds.has(i.id))

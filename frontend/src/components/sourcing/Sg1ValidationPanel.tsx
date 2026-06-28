@@ -72,7 +72,7 @@ export function Sg1ValidationPanel({
                             onValidate={onGo}
                             isProcessing={isProcessing}
                             isValidateDisabled={!analyzed || !noDuplicate}
-                            disabledReason={hasDuplicates ? "Resolve duplicate matches before validating SG-1." : "Complete all checklist items before validating SG-1."}
+                            disabledReason={hasDuplicates ? "Resolve duplicate matches before validating VC-1." : "Complete all checklist items before validating VC-1."}
                         />
                     </motion.div>
                 </motion.div>

@@ -1495,7 +1495,7 @@ html.dark .recap-value {
 }
 
 /* ================================================================
-   SG-1 VALIDATION PANEL (RIGHT SLIDE-IN)
+   VC-1 VALIDATION PANEL (RIGHT SLIDE-IN)
    ================================================================ */
 .sg1-overlay {
   position: fixed;
@@ -4459,11 +4459,20 @@ html.dark .recap-value {
   margin: 0 0 7px;
 }
 
-.ipm-solution-card p {
+.ipm-solution-card p,
+.ipm-solution-description {
   color: #918d8b;
+  font-family: var(--ipm-figma-ui, "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   font-size: 17px;
   line-height: 1.35;
   margin: 0;
+}
+
+.ipm-solution-description--preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .ipm-circular-score {
@@ -5040,7 +5049,8 @@ body:has(.ipm-sourcing-redesign) {
   font-size: 18px;
 }
 
-.ipm-solution-card p {
+.ipm-solution-card p,
+.ipm-solution-description {
   font-size: 14px;
   line-height: 1.35;
 }
@@ -5216,7 +5226,7 @@ body:has(.ipm-sourcing-redesign) {
 }
 
 .ipm-solution-card:not(.selected) h3 {
-  margin-bottom: 0;
+  margin-bottom: 6px;
 }
 
 .ipm-solution-score-text {
@@ -6439,6 +6449,82 @@ body:has(.qualification-page) {
   gap: 14px;
 }
 
+.solution-score-carousel {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+}
+
+.solution-score-carousel .solution-score-card {
+  margin: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.solution-score-carousel .solution-nav-arrow,
+.solution-score-carousel .solution-nav-spacer {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 2;
+}
+
+.solution-score-carousel .solution-nav-arrow-prev,
+.solution-score-carousel .solution-nav-spacer:first-child {
+  justify-self: start;
+  transform: translateX(calc(-100% - 12px));
+}
+
+.solution-score-carousel .solution-nav-arrow-next,
+.solution-score-carousel .solution-nav-spacer:last-child {
+  justify-self: end;
+  transform: translateX(calc(100% + 12px));
+}
+
+.selection-solution-carousel {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 12px;
+}
+
+.selection-solution-carousel .selectable-solution-card {
+  margin: 0;
+}
+
+.selection-solution-carousel .solution-nav-arrow,
+.selection-solution-carousel .solution-nav-spacer {
+  align-self: center;
+  justify-self: center;
+}
+
+.solution-nav-arrow,
+.solution-nav-spacer {
+  width: 42px;
+  height: 42px;
+}
+
+.solution-nav-arrow {
+  border: 1px solid #dedbd8;
+  border-radius: 999px;
+  background: #fff;
+  color: #757597;
+  font-family: var(--ipm-figma-ui);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.solution-nav-arrow:hover {
+  border-color: rgba(142, 101, 152, 0.46);
+  box-shadow: 0 8px 20px rgba(117, 117, 151, 0.16);
+}
+
 .qualification-card {
   border: 1px solid #dedbd8;
   border-radius: 16px;
@@ -6611,6 +6697,28 @@ body:has(.qualification-page) {
   gap: 8px;
   color: #74706c;
   font-size: 12px;
+}
+
+.mini-score-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-score-toggle {
+  border: 1px solid #dedbd8;
+  border-radius: 999px;
+  background: #fff;
+  color: #6f6b67;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.mini-score-toggle:hover {
+  border-color: rgba(142, 101, 152, 0.46);
 }
 
 .mini-score strong {
@@ -6850,16 +6958,11 @@ body:has(.qualification-page) {
   font-size: 18px;
 }
 
-.selection-score-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.selection-score-row span {
-  display: grid;
+.selected-solution-ivi {
+  display: inline-grid;
   gap: 2px;
-  padding: 10px;
+  min-width: 92px;
+  padding: 10px 12px;
   border: 1px solid #dedbd8;
   border-radius: 12px;
   background: #fff;
@@ -6867,10 +6970,155 @@ body:has(.qualification-page) {
   font-size: 12px;
 }
 
-.selection-score-row strong {
+.selected-solution-ivi strong {
   color: #151515;
   font-size: 22px;
   line-height: 1;
+}
+
+.selection-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.selection-title-row h3 {
+  min-width: 0;
+}
+
+.selection-score-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-right: 26px;
+}
+
+.selection-score-chips span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid #dedbd8;
+  border-radius: 999px;
+  background: #fff;
+  color: #77736f;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.selection-score-chips strong {
+  color: #151515;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.selection-radar-wrap {
+  position: relative;
+  width: min(100%, 560px);
+  min-height: 330px;
+  margin: 8px auto 0;
+  padding: 48px 108px 54px;
+  box-sizing: border-box;
+  border: 1px solid rgba(117, 117, 151, 0.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(117, 117, 151, 0.12), transparent 46%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 247, 252, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.selection-radar-chart {
+  display: block;
+  width: 100%;
+  max-width: 255px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: visible;
+  filter: drop-shadow(0 16px 24px rgba(117, 117, 151, 0.16));
+}
+
+.selection-radar-grid-line {
+  fill: none;
+  stroke: rgba(117, 117, 151, 0.3);
+  stroke-width: 1.15;
+}
+
+.selection-radar-axis {
+  stroke: rgba(117, 117, 151, 0.22);
+  stroke-width: 1.1;
+}
+
+.selection-radar-area {
+  fill: rgba(117, 117, 151, 0.3);
+  stroke: none;
+}
+
+.selection-radar-line {
+  fill: none;
+  stroke: #757597;
+  stroke-width: 3.4;
+  stroke-linejoin: round;
+}
+
+.selection-radar-dot {
+  fill: #757597;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.selection-radar-label {
+  position: absolute;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(117, 117, 151, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #151515;
+  font-size: 12px;
+  line-height: 1.1;
+  text-align: center;
+  box-shadow: 0 8px 18px rgba(117, 117, 151, 0.08);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.selection-radar-label strong {
+  color: #757597;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.selection-radar-label-top {
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.selection-radar-label-right {
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+  text-align: left;
+}
+
+.selection-radar-label-bottom {
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.selection-radar-label-left {
+  top: 50%;
+  left: 22px;
+  transform: translateY(-50%);
+  text-align: right;
 }
 
 .selection-notes p {
@@ -6916,13 +7164,61 @@ body:has(.qualification-page) {
     grid-template-columns: 1fr;
   }
 
+  .selection-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .selection-score-chips {
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .selection-solution-carousel {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 8px;
+  }
+
+  .selection-solution-carousel .solution-nav-arrow,
+  .selection-solution-carousel .solution-nav-spacer {
+    width: 34px;
+    height: 34px;
+  }
+
   .solution-ivi {
     justify-items: start;
     width: fit-content;
   }
+
+  .selection-radar-wrap {
+    min-height: 300px;
+    padding: 52px 28px 58px;
+  }
+
+  .selection-radar-chart {
+    max-width: 220px;
+  }
+
+  .selection-radar-label {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .selection-radar-label-top,
+  .selection-radar-label-bottom {
+    left: 50%;
+  }
+
+  .selection-radar-label-right {
+    right: 10px;
+  }
+
+  .selection-radar-label-left {
+    left: 10px;
+  }
 }
 
-/* Unified Stage Gate validation card. */
+/* Unified validation checkpoint card. */
 .ipm-stagegate-overlay {
   position: fixed;
   inset: 0;
@@ -7498,7 +7794,7 @@ body:has(.qualification-page) {
   font-size: 11px;
 }
 
-/* Professional IPM workflow stage-gate strip. */
+/* Professional IPM workflow validation checkpoint strip. */
 .workflow-bar-compact {
   background: #f6f7fb !important;
   border-bottom: 1px solid rgba(32, 36, 48, 0.08) !important;
@@ -9684,13 +9980,30 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   color: #827e7a !important;
 }
 
-.ipm-sourcing-redesign .ipm-horizon-option--compact.selected {
-  border-color: #000 !important;
-  background: #f7f7f7 !important;
+.ipm-sourcing-redesign .ipm-horizon-option--compact.selected,
+.ipm-sourcing-redesign .ipm-horizon-option--compact[aria-pressed="true"] {
+  border: 2px solid transparent !important;
+  background:
+    linear-gradient(#f7f7f7, #f7f7f7) padding-box,
+    var(--ipm-figma-gradient-accent, linear-gradient(90deg, #F85 0%, #FF4F42 100%)) border-box !important;
+  box-shadow: none !important;
+}
+
+.ipm-sourcing-redesign .ipm-horizon-option--compact.selected:focus-visible,
+.ipm-sourcing-redesign .ipm-horizon-option--compact[aria-pressed="true"]:focus-visible {
+  outline: none !important;
 }
 
 .ipm-sourcing-redesign .ipm-horizon-option--compact:hover {
   border-color: #a8a4a0 !important;
+}
+
+.ipm-sourcing-redesign .ipm-horizon-option--compact.selected:hover,
+.ipm-sourcing-redesign .ipm-horizon-option--compact[aria-pressed="true"]:hover {
+  border-color: transparent !important;
+  background:
+    linear-gradient(#f7f7f7, #f7f7f7) padding-box,
+    var(--ipm-figma-gradient-accent, linear-gradient(90deg, #F85 0%, #FF4F42 100%)) border-box !important;
 }
 
 .ipm-sourcing-redesign .ipm-horizon-hint {
@@ -9714,6 +10027,17 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   min-height: 72px !important;
   max-height: 96px !important;
   resize: vertical !important;
+  border: 2px solid #d8d5d2 !important;
+  outline: none !important;
+}
+
+.ipm-sourcing-redesign .ipm-business-need-card textarea#pitch-input:focus,
+.ipm-sourcing-redesign .ipm-business-need-card textarea#pitch-input:focus-visible {
+  border-color: transparent !important;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    var(--ipm-figma-gradient-accent, linear-gradient(90deg, #F85 0%, #FF4F42 100%)) border-box !important;
+  outline: none !important;
 }
 
 .ipm-sourcing-redesign .ipm-reformulation-pill p {
@@ -9743,13 +10067,23 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 .ipm-sourcing-redesign .ipm-step-card textarea {
   min-height: 72px !important;
   border-radius: 6px !important;
-  border: 0 !important;
+  border: 2px solid #d8d5d2 !important;
   background: #fff !important;
   font-family: var(--ipm-figma-ui) !important;
   font-size: 15px !important;
   line-height: 1.45 !important;
   padding: 12px 14px !important;
   color: #000 !important;
+  outline: none !important;
+}
+
+.ipm-sourcing-redesign .ipm-step-card textarea:focus,
+.ipm-sourcing-redesign .ipm-step-card textarea:focus-visible {
+  border-color: transparent !important;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    var(--ipm-figma-gradient-accent, linear-gradient(90deg, #F85 0%, #FF4F42 100%)) border-box !important;
+  outline: none !important;
 }
 
 .ipm-sourcing-redesign .ipm-step-card textarea::placeholder {
@@ -10198,7 +10532,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   background: #bbbbbb !important;
 }
 
-/* Stage-gate validation typography */
+/* Validation checkpoint typography */
 .ipm-sourcing-redesign .ipm-stagegate-heading h2 {
   color: #000 !important;
   font-family: "Molde Expanded", var(--font-display) !important;
@@ -10351,6 +10685,55 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 
 .ipm-sourcing-redesign .ipm-alignment-stack {
   gap: 16px !important;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-viewport {
+  --ipm-alignment-card-slot: 158px;
+  min-height: calc((var(--ipm-alignment-card-slot) * 2) + 16px);
+  max-height: calc((var(--ipm-alignment-card-slot) * 2) + 16px);
+  overflow: hidden;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-nav {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #000;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-nav:hover {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-nav:focus-visible {
+  outline: 2px solid #ff5b42;
+  outline-offset: 2px;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-nav svg {
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.ipm-sourcing-redesign .ipm-alignment-stack-nav svg.is-flipped {
+  transform: rotate(180deg);
 }
 
 .ipm-sourcing-redesign .ipm-alignment-card {
@@ -10859,6 +11242,75 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   padding: 28px 0 40px 24px !important;
 }
 
+.ipm-sourcing-redesign .ipm-evaluation-workspace {
+  grid-template-columns:
+    minmax(280px, 360px)
+    var(--ipm-page-gutter-md)
+    var(--ipm-sourcing-track-width)
+    20px
+    minmax(0, 1fr) !important;
+}
+
+.ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-evaluation-actions {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  justify-self: stretch !important;
+  border-left: 0 !important;
+  border-right: 1px solid #dedcda !important;
+  margin-left: -12px !important;
+  padding: 28px 18px 40px 0 !important;
+  min-height: 0 !important;
+  gap: 12px !important;
+}
+
+.ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-evaluation-actions .qualification-actions {
+  margin-top: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-step-column {
+  grid-column: 2 / -1 !important;
+  display: block !important;
+  min-width: 0 !important;
+  padding: 28px 0 40px 12px !important;
+}
+
+.ipm-sourcing-redesign .ipm-selection-workspace {
+  grid-template-columns:
+    minmax(280px, 360px)
+    var(--ipm-page-gutter-md)
+    var(--ipm-sourcing-track-width)
+    20px
+    minmax(0, 1fr) !important;
+}
+
+.ipm-sourcing-redesign .ipm-selection-workspace .selected-solution-panel {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  justify-self: stretch !important;
+  border-left: 0 !important;
+  border-right: 1px solid #dedcda !important;
+  margin-left: -12px !important;
+  padding: 28px 18px 40px 0 !important;
+  min-height: 0 !important;
+  gap: 12px !important;
+}
+
+.ipm-sourcing-redesign .ipm-selection-workspace .ipm-step-column {
+  grid-column: 2 / -1 !important;
+  grid-row: 1 !important;
+  display: block !important;
+  min-width: 0 !important;
+  padding: 28px 0 40px 12px !important;
+}
+
 .ipm-sourcing-redesign .ipm-qualification-workspace .ipm-step-subtitle {
   margin: -4px 0 18px !important;
   color: #827e7a !important;
@@ -10874,7 +11326,6 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   flex-direction: column !important;
   justify-content: flex-start !important;
   gap: 16px !important;
-  min-height: 100% !important;
 }
 
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions {
@@ -10887,6 +11338,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions .ipm-outline-action,
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions .ipm-primary-action,
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .ipm-outline-action,
 .ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .ipm-primary-action,
 .ipm-sourcing-redesign .ipm-qualification-workspace .selection-toolbar .ipm-outline-action {
   width: 100% !important;
@@ -10907,6 +11359,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions .ipm-outline-action,
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .ipm-outline-action,
 .ipm-sourcing-redesign .ipm-qualification-workspace .selection-toolbar .ipm-outline-action {
   border: 1px solid #111111 !important;
   background: #ffffff !important;
@@ -10915,6 +11368,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions .ipm-outline-action:hover:not(:disabled),
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .ipm-outline-action:hover:not(:disabled),
 .ipm-sourcing-redesign .ipm-qualification-workspace .selection-toolbar .ipm-outline-action:hover:not(:disabled) {
   background: #f6f3f0 !important;
 }
@@ -10935,6 +11389,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions .ipm-outline-action:disabled,
 .ipm-sourcing-redesign .ipm-evaluation-actions .qualification-actions .ipm-primary-action:disabled,
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .ipm-outline-action:disabled,
 .ipm-sourcing-redesign .ipm-qualification-workspace .selection-toolbar .ipm-outline-action:disabled,
 .ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .ipm-primary-action:disabled {
   opacity: 0.45 !important;
@@ -10957,6 +11412,82 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 .ipm-sourcing-redesign .selectable-list {
   display: grid !important;
   gap: 16px !important;
+}
+
+.ipm-sourcing-redesign .solution-score-carousel {
+  position: relative !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+.ipm-sourcing-redesign .solution-score-carousel .solution-score-card {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+.ipm-sourcing-redesign .solution-score-carousel .solution-nav-arrow,
+.ipm-sourcing-redesign .solution-score-carousel .solution-nav-spacer {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  z-index: 2 !important;
+}
+
+.ipm-sourcing-redesign .solution-score-carousel .solution-nav-arrow-prev,
+.ipm-sourcing-redesign .solution-score-carousel .solution-nav-spacer:first-child {
+  justify-self: start !important;
+  transform: translateX(calc(-100% - 12px)) !important;
+}
+
+.ipm-sourcing-redesign .solution-score-carousel .solution-nav-arrow-next,
+.ipm-sourcing-redesign .solution-score-carousel .solution-nav-spacer:last-child {
+  justify-self: end !important;
+  transform: translateX(calc(100% + 12px)) !important;
+}
+
+.ipm-sourcing-redesign .selection-solution-carousel {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.ipm-sourcing-redesign .selection-solution-carousel .selectable-solution-card {
+  margin: 0 !important;
+}
+
+.ipm-sourcing-redesign .selection-solution-carousel .solution-nav-arrow,
+.ipm-sourcing-redesign .selection-solution-carousel .solution-nav-spacer {
+  align-self: center !important;
+  justify-self: center !important;
+  transform: none !important;
+}
+
+.ipm-sourcing-redesign .solution-nav-arrow,
+.ipm-sourcing-redesign .solution-nav-spacer {
+  width: 42px !important;
+  height: 42px !important;
+}
+
+.ipm-sourcing-redesign .solution-nav-arrow {
+  border: 1px solid var(--ipm-qual-purple-muted) !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: var(--ipm-qual-purple-end) !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 6px 16px rgba(117, 117, 151, 0.12) !important;
+}
+
+.ipm-sourcing-redesign .solution-nav-arrow:hover {
+  border-color: var(--ipm-qual-purple) !important;
+  box-shadow: 0 10px 22px rgba(117, 117, 151, 0.2) !important;
 }
 
 .ipm-sourcing-redesign .qualification-section-heading {
@@ -11026,6 +11557,29 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   font-size: 15px !important;
   font-weight: 500 !important;
   color: #000 !important;
+}
+
+.ipm-sourcing-redesign .selection-title-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.ipm-sourcing-redesign .selection-score-chips span {
+  border-color: rgba(146, 145, 191, 0.3) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #827e7a !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.ipm-sourcing-redesign .selection-score-chips strong {
+  color: var(--ipm-qual-purple-end) !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
 }
 
 .ipm-sourcing-redesign .decision-board,
@@ -11117,6 +11671,12 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   color: var(--ipm-qual-purple-end) !important;
 }
 
+.ipm-sourcing-redesign .ipm-qualification-workspace .solution-meta-row span {
+  border-color: transparent !important;
+  background: var(--ipm-qual-gradient) !important;
+  color: #ffffff !important;
+}
+
 .ipm-sourcing-redesign .ipm-qualification-workspace .solution-ivi {
   border-color: var(--ipm-qual-purple-muted) !important;
 }
@@ -11127,6 +11687,41 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 
 .ipm-sourcing-redesign .ipm-qualification-workspace .mini-score em {
   background: var(--ipm-qual-gradient) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-grid-line {
+  stroke: rgba(146, 145, 191, 0.38) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-axis {
+  stroke: rgba(146, 145, 191, 0.28) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-area {
+  fill: rgba(146, 145, 191, 0.34) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-line {
+  stroke: var(--ipm-qual-purple-end) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-dot {
+  fill: var(--ipm-qual-purple-end) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-label,
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-label strong {
+  font-family: var(--ipm-figma-ui) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-label {
+  border-color: rgba(146, 145, 191, 0.26) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 10px 20px rgba(40, 35, 84, 0.08) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selection-radar-label strong {
+  color: var(--ipm-qual-purple-end) !important;
 }
 
 .ipm-sourcing-redesign .ipm-qualification-workspace .mini-score {
@@ -11140,6 +11735,29 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   align-items: center !important;
   justify-content: space-between !important;
   gap: 8px !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .mini-score-top-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .mini-score-toggle {
+  border: 1px solid var(--ipm-qual-purple-muted) !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: var(--ipm-qual-purple-end) !important;
+  padding: 2px 8px !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  cursor: pointer !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .mini-score-toggle:hover {
+  border-color: var(--ipm-qual-purple) !important;
 }
 
 .ipm-sourcing-redesign .ipm-qualification-workspace .mini-score-rationale {
@@ -11197,6 +11815,10 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .ipm-qualification-workspace .decision-stats strong {
+  color: var(--ipm-qual-purple-end) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-ivi strong {
   color: var(--ipm-qual-purple-end) !important;
 }
 
@@ -11293,6 +11915,95 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   line-height: 1.4 !important;
 }
 
+.ipm-sourcing-redesign .selected-solution-panel .selected-panel-card {
+  position: relative !important;
+  display: grid !important;
+  gap: 14px !important;
+  padding: 18px 18px 16px !important;
+  overflow: hidden !important;
+  background: linear-gradient(180deg, #faf9fd 0%, #fff 42%) !important;
+  border: 1px solid rgba(146, 145, 191, 0.28) !important;
+  border-radius: 14px !important;
+}
+
+.ipm-sourcing-redesign .selected-solution-panel .selected-panel-card::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  background: var(--ipm-qual-gradient) !important;
+}
+
+.ipm-sourcing-redesign .selected-panel-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.ipm-sourcing-redesign .selected-solution-list {
+  display: grid !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.ipm-sourcing-redesign .selected-solution-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.ipm-sourcing-redesign .selected-solution-item h2 {
+  margin: 0 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  font-family: "Molde Expanded", var(--font-display) !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  color: #000 !important;
+}
+
+.ipm-sourcing-redesign .selected-solution-ivi {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  gap: 2px !important;
+  min-width: 54px !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: var(--ipm-qual-gradient) !important;
+  color: #fff !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.ipm-sourcing-redesign .selected-solution-ivi strong {
+  font-family: "Molde Expanded", var(--font-display) !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  color: #fff !important;
+  line-height: 1 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .selected-solution-ivi,
+.ipm-sourcing-redesign .ipm-qualification-workspace .selected-solution-panel .selected-solution-ivi strong {
+  color: #fff !important;
+}
+
 .ipm-sourcing-redesign .ipm-evaluation-actions .decision-stats {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -11321,109 +12032,201 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 /* IVI formula card — Innovation Value Index (compact) */
 .ipm-sourcing-redesign .ipm-qualification-workspace .qualification-formula-card {
   display: grid !important;
-  gap: 12px !important;
-  padding: 16px 18px !important;
-  background: linear-gradient(135deg, #fff 0%, #f8f6fc 58%, #f3f1fa 100%) !important;
-  border: 1px solid var(--ipm-figma-border) !important;
+  gap: 14px !important;
+  padding: 18px 20px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: #fff !important;
+  border: 1px solid rgba(146, 145, 191, 0.34) !important;
+  box-shadow: 0 16px 38px rgba(40, 35, 84, 0.08) !important;
+}
+
+.ipm-sourcing-redesign .ipm-qualification-workspace .qualification-formula-card::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: 4px !important;
+  background: var(--ipm-qual-gradient) !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-head {
-  display: grid !important;
-  gap: 4px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  min-width: 0 !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-title-row {
   display: flex !important;
   align-items: baseline !important;
   flex-wrap: wrap !important;
-  gap: 8px 12px !important;
+  gap: 8px 10px !important;
+  min-width: 0 !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-title {
   margin: 0 !important;
-  color: #000 !important;
+  background: var(--ipm-qual-gradient) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
   font-family: "Molde Expanded", var(--font-display) !important;
   font-size: 18px !important;
   font-weight: 500 !important;
   line-height: 1 !important;
-  letter-spacing: 0.06em !important;
-}
-
-.ipm-sourcing-redesign .ivi-formula-fullname {
-  margin: 0 !important;
-  color: var(--ipm-qual-purple-end) !important;
-  font-family: "Molde Expanded", var(--font-display) !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.06em !important;
   text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-intro {
   margin: 0 !important;
   color: #827e7a !important;
   font-family: var(--ipm-figma-ui) !important;
-  font-size: 13px !important;
+  font-size: 11px !important;
   font-weight: 400 !important;
   line-height: 1.35 !important;
+  max-width: none !important;
+  white-space: nowrap !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-equation {
   display: flex !important;
   flex-wrap: nowrap !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  gap: 3px !important;
+  justify-content: center !important;
+  gap: clamp(4px, 0.55vw, 8px) !important;
   width: 100% !important;
-  padding: 7px 8px !important;
-  border: 1px solid rgba(146, 145, 191, 0.22) !important;
-  border-radius: 10px !important;
-  background: rgba(255, 255, 255, 0.72) !important;
-  overflow: hidden !important;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(146, 145, 191, 0.28) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  overflow: visible !important;
   box-sizing: border-box !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.ipm-sourcing-redesign .ivi-formula-bracket {
+  background: var(--ipm-qual-gradient) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  font-family: "Molde Expanded", var(--font-display) !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-term-group {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 3px !important;
-  flex: 1 1 0 !important;
+  gap: clamp(4px, 0.55vw, 8px) !important;
+  flex: 0 0 auto !important;
   min-width: 0 !important;
   justify-content: center !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-operator {
   flex: 0 0 auto !important;
-  color: var(--ipm-qual-purple) !important;
+  color: rgba(127, 99, 151, 0.78) !important;
   font-family: "Molde Expanded", var(--font-display) !important;
-  font-size: 11px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   line-height: 1 !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-operator-equals {
   flex: 0 0 auto !important;
-  margin-left: 2px !important;
+  color: var(--ipm-qual-purple-end) !important;
+  margin-left: 0 !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-term {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  position: relative !important;
+  gap: clamp(3px, 0.35vw, 6px) !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  padding: 4px 5px !important;
-  border: 1px solid var(--ipm-figma-border) !important;
-  border-radius: 7px !important;
-  background: #fff !important;
+  padding: 7px clamp(6px, 0.6vw, 8px) !important;
+  border: 1px solid rgba(146, 145, 191, 0.34) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #faf9ff 100%) !important;
   white-space: nowrap !important;
+  box-shadow: 0 8px 16px rgba(40, 35, 84, 0.06) !important;
+  cursor: help !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease !important;
+}
+
+.ipm-sourcing-redesign .ivi-formula-term:hover,
+.ipm-sourcing-redesign .ivi-formula-term:focus-visible {
+  border-color: rgba(99, 91, 255, 0.42) !important;
+  box-shadow: 0 10px 20px rgba(40, 35, 84, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.ipm-sourcing-redesign .ivi-formula-term::after {
+  content: attr(data-tooltip) !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: calc(100% + 10px) !important;
+  z-index: 20 !important;
+  width: max-content !important;
+  max-width: 260px !important;
+  padding: 9px 10px !important;
+  border: 1px solid rgba(146, 145, 191, 0.34) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 16px 32px rgba(40, 35, 84, 0.16) !important;
+  color: #3f3a45 !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  white-space: normal !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translate(-50%, 4px) !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+.ipm-sourcing-redesign .ivi-formula-term::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: calc(100% + 4px) !important;
+  z-index: 21 !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-right: 1px solid rgba(146, 145, 191, 0.34) !important;
+  border-bottom: 1px solid rgba(146, 145, 191, 0.34) !important;
+  background: #fff !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translate(-50%, 4px) rotate(45deg) !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+.ipm-sourcing-redesign .ivi-formula-term:hover::after,
+.ipm-sourcing-redesign .ivi-formula-term:hover::before,
+.ipm-sourcing-redesign .ivi-formula-term:focus-visible::after,
+.ipm-sourcing-redesign .ivi-formula-term:focus-visible::before {
+  opacity: 1 !important;
+  transform: translate(-50%, 0) !important;
+}
+
+.ipm-sourcing-redesign .ivi-formula-term:hover::before,
+.ipm-sourcing-redesign .ivi-formula-term:focus-visible::before {
+  transform: translate(-50%, 0) rotate(45deg) !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-weight {
   color: var(--ipm-qual-purple-end) !important;
-  font-family: var(--ipm-figma-ui) !important;
+  font-family: "Molde Expanded", var(--font-display) !important;
   font-size: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   line-height: 1 !important;
   flex-shrink: 0 !important;
 }
@@ -11431,8 +12234,8 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 .ipm-sourcing-redesign .ivi-formula-label {
   color: #000 !important;
   font-family: var(--ipm-figma-ui) !important;
-  font-size: 10px !important;
-  font-weight: 500 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
   line-height: 1 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.02em !important;
@@ -11443,28 +12246,66 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 .ipm-sourcing-redesign .ivi-formula-result {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 2px !important;
+  gap: 0 !important;
   flex: 0 0 auto !important;
-  padding: 4px 8px !important;
-  border-radius: 7px !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
   background: var(--ipm-qual-gradient) !important;
   color: #fff !important;
   white-space: nowrap !important;
+  box-shadow: 0 10px 18px rgba(99, 91, 255, 0.22) !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-result-badge {
   font-family: "Molde Expanded", var(--font-display) !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
   line-height: 1 !important;
   letter-spacing: 0.04em !important;
 }
 
 .ipm-sourcing-redesign .ivi-formula-result-scale {
-  font-family: var(--ipm-figma-ui) !important;
-  font-size: 10px !important;
-  font-weight: 400 !important;
-  opacity: 0.9 !important;
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  .ipm-sourcing-redesign .ivi-formula-equation {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .ipm-sourcing-redesign .ivi-formula-bracket,
+  .ipm-sourcing-redesign .ivi-formula-operator:not(.ivi-formula-operator-equals) {
+    display: none !important;
+  }
+
+  .ipm-sourcing-redesign .ivi-formula-term-group,
+  .ipm-sourcing-redesign .ivi-formula-term,
+  .ipm-sourcing-redesign .ivi-formula-result {
+    width: 100% !important;
+  }
+
+  .ipm-sourcing-redesign .ivi-formula-term {
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ipm-sourcing-redesign .ivi-formula-head {
+    display: grid !important;
+  }
+
+  .ipm-sourcing-redesign .ivi-formula-intro {
+    white-space: normal !important;
+  }
+
+  .ipm-sourcing-redesign .ivi-formula-equation {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .ipm-sourcing-redesign .ivi-formula-operator-equals {
+    justify-self: center !important;
+  }
 }
 
 /* Delivery workspace — mirrors qualification layout on right accordion track */
@@ -11608,6 +12449,10 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   width: 100% !important;
 }
 
+.ipm-sourcing-redesign .ipm-delivery-actions .delivery-summary-card .delivery-board-actions {
+  margin-top: 8px !important;
+}
+
 .ipm-sourcing-redesign .ipm-delivery-actions .ipm-primary-action,
 .ipm-sourcing-redesign .ipm-delivery-actions .ipm-outline-action {
   width: 100% !important;
@@ -11636,6 +12481,41 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 .ipm-sourcing-redesign .delivery-main {
   display: grid !important;
   gap: 16px !important;
+}
+
+.ipm-sourcing-redesign .delivery-rec-carousel {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+.ipm-sourcing-redesign .delivery-rec-carousel .delivery-rec-card {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  margin: 0 !important;
+}
+
+.ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-arrow,
+.ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-spacer {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  justify-self: center !important;
+  z-index: 2 !important;
+}
+
+.ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-arrow-prev,
+.ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-spacer:first-child {
+  justify-self: start !important;
+  transform: translateX(calc(-50% - 2px)) !important;
+}
+
+.ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-arrow-next,
+.ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-spacer:last-child {
+  justify-self: end !important;
+  transform: translateX(calc(50% + 2px)) !important;
 }
 
 .ipm-sourcing-redesign .delivery-selection-card p,
@@ -12201,6 +13081,23 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
     padding-left: 0 !important;
   }
 
+  .ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-step-column,
+  .ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-evaluation-actions {
+    grid-column: 1 !important;
+    max-width: none !important;
+  }
+
+  .ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-step-column {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .ipm-sourcing-redesign .ipm-evaluation-workspace .ipm-evaluation-actions {
+    border-right: 0 !important;
+    border-bottom: 1px solid #dedcda !important;
+    padding: 0 0 24px !important;
+  }
+
   .ipm-sourcing-redesign .ipm-delivery-workspace {
     grid-template-columns: 1fr !important;
   }
@@ -12215,6 +13112,27 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
     border-left: 0 !important;
     border-top: 1px solid #dedcda !important;
     padding: 24px 0 40px !important;
+  }
+
+  .ipm-sourcing-redesign .delivery-rec-carousel {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0 !important;
+  }
+
+  .ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-arrow,
+  .ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-spacer {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-arrow-prev,
+  .ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-spacer:first-child {
+    transform: translateX(-35%) !important;
+  }
+
+  .ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-arrow-next,
+  .ipm-sourcing-redesign .delivery-rec-carousel .solution-nav-spacer:last-child {
+    transform: translateX(35%) !important;
   }
 
   .ipm-sourcing-redesign .delivery-kpi-grid {
@@ -12381,4 +13299,82 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
     transform: scale(1);
     box-shadow: 0 0 0 12px transparent;
   }
+}
+
+/* Workflow step connectors — node-row alignment + even width across phases */
+.ipm-sourcing-redesign .ipm-flow-steps,
+.workflow-bar-compact .ipm-flow-steps {
+  --ipm-flow-step-gap: 4px;
+  --ipm-flow-node-size: 34px;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(42px, 2fr) minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+  row-gap: var(--ipm-flow-step-gap) !important;
+  min-height: 0 !important;
+  padding: 8px 18px 12px !important;
+}
+
+.ipm-sourcing-redesign .ipm-flow-step,
+.workflow-bar-compact .ipm-flow-step {
+  grid-row: 1 / -1 !important;
+  display: grid !important;
+  grid-template-rows: subgrid !important;
+  grid-row: 1 / -1 !important;
+  gap: var(--ipm-flow-step-gap) !important;
+  justify-items: center !important;
+  align-content: start !important;
+}
+
+.ipm-sourcing-redesign .ipm-flow-step-line,
+.workflow-bar-compact .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-progress:has(.ipm-flow-phase-wrap.phase-qualification.status-active) .ipm-flow-phase-wrap.phase-sourcing .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-progress:has(.ipm-flow-phase-wrap.phase-delivery.status-active) .ipm-flow-phase-wrap.phase-sourcing .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-progress:has(.ipm-flow-phase-wrap.phase-delivery.status-active) .ipm-flow-phase-wrap.phase-qualification .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-progress:has(.ipm-flow-phase-wrap.phase-sourcing.status-active) .ipm-flow-phase.phase-qualification .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-progress:has(.ipm-flow-phase-wrap.phase-sourcing.status-active) .ipm-flow-phase.phase-delivery .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-sourcing .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification.status-active .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery.status-active .ipm-flow-step-line {
+  grid-row: 2 !important;
+  align-self: center !important;
+  justify-self: stretch !important;
+  flex: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.ipm-sourcing-redesign .ipm-flow-step-line span:nth-child(2),
+.workflow-bar-compact .ipm-flow-step-line span:nth-child(2) {
+  display: block !important;
+  width: 100% !important;
+  height: 2px !important;
+  min-height: 0 !important;
+  border-radius: 999px !important;
+}
+
+@supports not (grid-template-rows: subgrid) {
+  .ipm-sourcing-redesign .ipm-flow-step-line,
+  .workflow-bar-compact .ipm-flow-step-line {
+    align-self: start !important;
+    margin-top: calc(10px + var(--ipm-flow-step-gap) + (var(--ipm-flow-node-size) / 2) - 1px) !important;
+  }
+}
+
+.ipm-sourcing-redesign .ipm-solution-description {
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #827e7a !important;
 }

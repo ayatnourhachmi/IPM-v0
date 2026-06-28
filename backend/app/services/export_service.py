@@ -100,7 +100,7 @@ def _fallback_logo_png_bytes() -> BytesIO:
         sub = font
 
     draw.text((28, 20), "DXC Technology", fill=(250, 250, 252), font=font)
-    draw.text((28, 64), "Innovation Progress Model · Delivery recommendations", fill=(180, 187, 196), font=sub)
+    draw.text((28, 64), "Innovation Process Model · Delivery recommendations", fill=(180, 187, 196), font=sub)
 
     buf = BytesIO()
     img.save(buf, format="PNG")
@@ -309,7 +309,7 @@ def _pdf_draw_footer(canvas, doc) -> None:  # noqa: ARG001
     canvas.drawCentredString(
         w / 2,
         34,
-        "DXC Technology · Innovation Progress Model · For client / internal use under engagement terms",
+        "DXC Technology · Innovation Process Model · For client / internal use under engagement terms",
     )
     n = canvas.getPageNumber()
     canvas.drawRightString(w - 42, 34, f"Page {n}")
@@ -445,7 +445,7 @@ def build_pdf_report(
     story.append(Spacer(1, 10))
     story.append(
         Paragraph(
-            "Innovation Progress Model<br/><font color='#1E40AF'>PoC Preparation &amp; Delivery Recommendations</font>",
+            "Innovation Process Model<br/><font color='#1E40AF'>PoC Preparation &amp; Delivery Recommendations</font>",
             title_style,
         )
     )
@@ -492,7 +492,7 @@ def build_pdf_report(
 
     story.append(Paragraph("Why DXC", subhead_style))
     for item in [
-        "Structured Innovation Progress Model (IPM) to guide need-to-production journeys.",
+        "Structured Innovation Process Model (IPM) to guide need-to-production journeys.",
         "Enterprise delivery experience across cloud, data, AI, ERP, CRM, and service management ecosystems.",
         "Ability to convert qualification evidence into technical, organizational, and KPI-driven delivery actions.",
         "Governance approach designed for client / DXC alignment before production commitment.",
@@ -865,7 +865,7 @@ def build_docx_report(
 
     title = document.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    r_title = title.add_run("Innovation Progress Model\n")
+    r_title = title.add_run("Innovation Process Model\n")
     r_title.bold = True
     r_title.font.size = Pt(15)
     r_title.font.color.rgb = RGBColor(0x4B, 0x55, 0x63)
@@ -906,7 +906,7 @@ def build_docx_report(
     _docx_add_bullets(
         document,
         [
-            "Structured Innovation Progress Model (IPM) to guide need-to-production journeys.",
+            "Structured Innovation Process Model (IPM) to guide need-to-production journeys.",
             "Enterprise delivery experience across cloud, data, AI, ERP, CRM, and service management ecosystems.",
             "Ability to convert qualification evidence into technical, organizational, and KPI-driven delivery actions.",
             "Governance approach designed for client / DXC alignment before production commitment.",
@@ -1098,7 +1098,7 @@ def build_docx_report(
 
     try:
         section.footer.paragraphs[0].text = (
-            "DXC Technology · Innovation Progress Model · For client / internal use under engagement terms"
+            "DXC Technology · Innovation Process Model · For client / internal use under engagement terms"
         )
     except Exception:
         pass

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { EvaluationSolution } from "./EvaluationStep";
 
 export type SelectionSolution = EvaluationSolution & {
@@ -16,8 +17,88 @@ const SCORE_LABELS: Array<{ key: keyof EvaluationSolution["scores"]; label: stri
     { key: "cost", label: "Duration" },
 ];
 
-function scorePercent(value: number) {
-    return `${Math.min(100, Math.max(0, (value / 5) * 100))}%`;
+const RADAR_CENTER = 70;
+const RADAR_RADIUS = 42;
+const RADAR_AXIS_POINTS = [
+    { x: RADAR_CENTER, y: RADAR_CENTER - RADAR_RADIUS },
+    { x: RADAR_CENTER + RADAR_RADIUS, y: RADAR_CENTER },
+    { x: RADAR_CENTER, y: RADAR_CENTER + RADAR_RADIUS },
+    { x: RADAR_CENTER - RADAR_RADIUS, y: RADAR_CENTER },
+] as const;
+
+function radarPoint(index: number, value: number) {
+    const clamped = Math.min(5, Math.max(0, value));
+    const scale = clamped / 5;
+    const axis = RADAR_AXIS_POINTS[index];
+
+    return {
+        x: RADAR_CENTER + (axis.x - RADAR_CENTER) * scale,
+        y: RADAR_CENTER + (axis.y - RADAR_CENTER) * scale,
+    };
+}
+
+function pointsToString(points: Array<{ x: number; y: number }>) {
+    return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+}
+
+function SelectionRadarChart({ solution }: { solution: SelectionSolution }) {
+    const scorePoints = SCORE_LABELS.map((score, index) => radarPoint(index, solution.scores[score.key]));
+    const gridLevels = [1, 2, 3, 4, 5].map((level) => (
+        <polygon
+            key={level}
+            className="selection-radar-grid-line"
+            points={pointsToString(RADAR_AXIS_POINTS.map((_, index) => radarPoint(index, level)))}
+        />
+    ));
+
+    return (
+        <div className="selection-radar-wrap" aria-label="Dimension score radar chart">
+            <svg className="selection-radar-chart" viewBox="0 0 140 140" role="img" aria-labelledby={`radar-title-${solution.id}`}>
+                <title id={`radar-title-${solution.id}`}>
+                    Impact {solution.scores.fit} of 5, Maturity {solution.scores.feasibility} of 5, Expertise {solution.scores.innovation} of 5, Duration {solution.scores.cost} of 5
+                </title>
+                {gridLevels}
+                {RADAR_AXIS_POINTS.map((point, index) => (
+                    <line
+                        key={SCORE_LABELS[index].key}
+                        className="selection-radar-axis"
+                        x1={RADAR_CENTER}
+                        y1={RADAR_CENTER}
+                        x2={point.x}
+                        y2={point.y}
+                    />
+                ))}
+                <polygon className="selection-radar-area" points={pointsToString(scorePoints)} />
+                <polyline className="selection-radar-line" points={`${pointsToString(scorePoints)} ${scorePoints[0].x.toFixed(1)},${scorePoints[0].y.toFixed(1)}`} />
+                {scorePoints.map((point, index) => (
+                    <circle
+                        key={SCORE_LABELS[index].key}
+                        className="selection-radar-dot"
+                        cx={point.x}
+                        cy={point.y}
+                        r="3.2"
+                    />
+                ))}
+            </svg>
+
+            <div className="selection-radar-label selection-radar-label-top">
+                <span>Impact</span>
+                <strong>{solution.scores.fit}/5</strong>
+            </div>
+            <div className="selection-radar-label selection-radar-label-right">
+                <span>Maturity</span>
+                <strong>{solution.scores.feasibility}/5</strong>
+            </div>
+            <div className="selection-radar-label selection-radar-label-bottom">
+                <span>Expertise</span>
+                <strong>{solution.scores.innovation}/5</strong>
+            </div>
+            <div className="selection-radar-label selection-radar-label-left">
+                <span>Duration</span>
+                <strong>{solution.scores.cost}/5</strong>
+            </div>
+        </div>
+    );
 }
 
 export function SelectableSolutionCard({
@@ -40,60 +121,49 @@ export function SelectableSolutionCard({
             <span className="solution-rank">#{rank}</span>
             <div className="selection-card-top">
                 <div>
-                    <h3>{solution.name}</h3>
+                    <div className="selection-title-row">
+                        <h3>{solution.name}</h3>
+                        <div className="selection-score-chips" aria-label={`${solution.name} scores`}>
+                            <span>
+                                <strong>{solution.overall.toFixed(1)}</strong>
+                                IVI
+                            </span>
+                            <span>
+                                <strong>{solution.fitScore}%</strong>
+                                Fit
+                            </span>
+                        </div>
+                    </div>
                     <p>{solution.whySelected}</p>
                 </div>
                 <span className={`selection-checkbox${selected ? " is-checked" : ""}`} aria-hidden="true" />
             </div>
 
-            <div className="selection-score-row">
-                <span>
-                    <strong>{solution.overall.toFixed(1)}</strong>
-                    IVI
-                </span>
-                <span>
-                    <strong>{solution.fitScore}%</strong>
-                    Fit
-                </span>
-            </div>
-
-            <div className="score-grid compact">
-                {SCORE_LABELS.map((score) => (
-                    <div key={score.key} className="mini-score">
-                        <div>
-                            <span>{score.label}</span>
-                            <strong>{solution.scores[score.key]}/5</strong>
-                        </div>
-                        <i>
-                            <em style={{ width: scorePercent(solution.scores[score.key]) }} />
-                        </i>
-                    </div>
-                ))}
-            </div>
+            <SelectionRadarChart solution={solution} />
         </button>
     );
 }
 
 export function SelectedSolutionPanel({
     solutions,
+    onBack,
     onValidate,
     canValidate,
     hasInitiative,
-    savedAt,
     transitionError,
 }: {
     solutions: SelectionSolution[];
+    onBack: () => void;
     onValidate: () => void;
     canValidate: boolean;
     hasInitiative: boolean;
-    savedAt?: string;
     transitionError?: string | null;
 }) {
     return (
         <aside className="ipm-summary-panel selected-solution-panel">
             <div className="qualification-card selected-panel-card">
-                <div className="qualification-section-heading">
-                    Selected solution{solutions.length === 1 ? "" : "s"}
+                <div className="selected-panel-head">
+                    <span className="qualification-section-heading">Selected solution{solutions.length === 1 ? "" : "s"}</span>
                     {solutions.length > 0 && <span className="selection-count-badge">{solutions.length}</span>}
                 </div>
                 {solutions.length > 0 ? (
@@ -101,34 +171,16 @@ export function SelectedSolutionPanel({
                         {solutions.map((solution) => (
                             <li key={solution.id} className="selected-solution-item">
                                 <h2>{solution.name}</h2>
-                                <p>{solution.description || "Selected from the IVI-ranked shortlist for Delivery preparation."}</p>
-                                <div className="decision-stats">
-                                    <span>
-                                        <strong>{solution.overall.toFixed(1)}</strong>
-                                        IVI
-                                    </span>
-                                    <span>
-                                        <strong>{solution.relevance}%</strong>
-                                        Relevance
-                                    </span>
-                                </div>
-                                <div className="selection-notes">
-                                    <div>
-                                        <span>Strength</span>
-                                        <p>{solution.strength}</p>
-                                    </div>
-                                    <div>
-                                        <span>Watchout</span>
-                                        <p>{solution.risk}</p>
-                                    </div>
-                                </div>
+                                <span className="selected-solution-ivi">
+                                    <strong>{solution.overall.toFixed(1)}</strong>
+                                    IVI
+                                </span>
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    <p>Choose one or more candidates from the shortlist to prepare SG-3 validation.</p>
+                    <p>Choose one or more candidates from the shortlist to prepare VC-3 validation.</p>
                 )}
-                <div className="saved-line">Evaluation saved: {savedAt || "Not saved yet"}</div>
             </div>
 
             {!hasInitiative && (
@@ -139,8 +191,11 @@ export function SelectedSolutionPanel({
                 <div className="qualification-alert danger">{transitionError}</div>
             )}
 
+            <button type="button" className="ipm-outline-action" onClick={onBack} disabled={!hasInitiative}>
+                Back to Evaluation
+            </button>
             <button type="button" className="ipm-primary-action" onClick={onValidate} disabled={!canValidate}>
-                Validate SG-3
+                Validate
             </button>
         </aside>
     );
@@ -154,7 +209,6 @@ export function SelectionStep({
     onValidate,
     canValidate,
     hasInitiative,
-    savedAt,
     transitionError,
 }: {
     solutions: SelectionSolution[];
@@ -164,13 +218,20 @@ export function SelectionStep({
     onValidate: () => void;
     canValidate: boolean;
     hasInitiative: boolean;
-    savedAt?: string;
     transitionError?: string | null;
 }) {
     const selectedSolutions = solutions.filter((solution) => selectedIds.has(solution.id));
+    const [activeIndex, setActiveIndex] = useState(0);
+    const activeSolution = solutions[activeIndex];
+    const canGoPrev = activeIndex > 0;
+    const canGoNext = activeIndex < solutions.length - 1;
+
+    useEffect(() => {
+        setActiveIndex((current) => Math.min(current, Math.max(0, solutions.length - 1)));
+    }, [solutions.length]);
 
     return (
-        <section className="ipm-sourcing-workspace ipm-qualification-workspace">
+        <section className="ipm-sourcing-workspace ipm-qualification-workspace ipm-selection-workspace">
             <div className="ipm-step-column">
                 <h2 className="ipm-step-title">
                     STEP 4 - <span>SELECTION</span>
@@ -180,40 +241,56 @@ export function SelectionStep({
                 </p>
 
                 <div className="qualification-main">
-                    <div className="qualification-card selection-toolbar">
-                        <div>
-                            <div className="qualification-section-heading">Decision shortlist</div>
-                            <p>{solutions.length} ranked candidates from Evaluation</p>
-                        </div>
-                        <button type="button" className="ipm-outline-action" onClick={onBack} disabled={!hasInitiative}>
-                            Back to Evaluation
-                        </button>
-                    </div>
-
                     {solutions.length === 0 && (
                         <div className="qualification-alert warning">No auto-evaluated ranking found yet. Go back to Evaluation to generate the ranked result.</div>
                     )}
 
-                    <div className="selectable-list">
-                        {solutions.map((solution, index) => (
+                    {activeSolution && (
+                        <div className="selectable-list selection-solution-carousel">
+                            {canGoPrev ? (
+                                <button
+                                    type="button"
+                                    className="solution-nav-arrow solution-nav-arrow-prev"
+                                    onClick={() => setActiveIndex((current) => Math.max(0, current - 1))}
+                                    aria-label="Show previous solution"
+                                >
+                                    &lt;
+                                </button>
+                            ) : (
+                                <span className="solution-nav-spacer" aria-hidden="true" />
+                            )}
+
                             <SelectableSolutionCard
-                                key={solution.id}
-                                solution={solution}
-                                rank={index + 1}
-                                selected={selectedIds.has(solution.id)}
-                                onSelect={() => onToggle(solution.id)}
+                                key={activeSolution.id}
+                                solution={activeSolution}
+                                rank={activeIndex + 1}
+                                selected={selectedIds.has(activeSolution.id)}
+                                onSelect={() => onToggle(activeSolution.id)}
                             />
-                        ))}
-                    </div>
+
+                            {canGoNext ? (
+                                <button
+                                    type="button"
+                                    className="solution-nav-arrow solution-nav-arrow-next"
+                                    onClick={() => setActiveIndex((current) => Math.min(solutions.length - 1, current + 1))}
+                                    aria-label="Show next solution"
+                                >
+                                    &gt;
+                                </button>
+                            ) : (
+                                <span className="solution-nav-spacer" aria-hidden="true" />
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
             <SelectedSolutionPanel
                 solutions={selectedSolutions}
+                onBack={onBack}
                 onValidate={onValidate}
                 canValidate={canValidate}
                 hasInitiative={hasInitiative}
-                savedAt={savedAt}
                 transitionError={transitionError}
             />
         </section>

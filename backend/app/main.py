@@ -121,7 +121,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="IPM — Innovation Progress Model",
+    title="IPM — Innovation Process Model",
     description="Phase 1 Sourcing API for business needs intake and pipeline management.",
     version="0.1.0",
     lifespan=lifespan,

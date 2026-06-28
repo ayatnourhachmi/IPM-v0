@@ -1,6 +1,6 @@
 /**
  * Evaluation / Comparaison page.
- * First qualification step after SG-2 GO.
+ * First qualification step after VC-2 GO.
  * Reads the solutions selected in Discovery and lets the user score them.
  */
 

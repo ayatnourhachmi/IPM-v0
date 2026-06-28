@@ -17,16 +17,16 @@ type FlowStatusMessage = {
 
 export function flowStatusMessage(currentState: SourcingFlowState): FlowStatusMessage {
     if (currentState === "sg1_validation") {
-        return { prefix: "Awaiting", emphasis: " Stage-gate 1 ", suffix: "Validation" };
+        return { prefix: "Awaiting", emphasis: " Validation Checkpoint 1", suffix: "" };
     }
     if (currentState === "sg2_validation") {
-        return { prefix: "Current step:", emphasis: " Discovery", suffix: "" };
+        return { prefix: "Awaiting", emphasis: " Validation Checkpoint 2", suffix: "" };
     }
     if (currentState === "sg3_validation") {
-        return { prefix: "Awaiting", emphasis: " Stage-gate 3 ", suffix: "Validation" };
+        return { prefix: "Awaiting", emphasis: " Validation Checkpoint 3", suffix: "" };
     }
     if (currentState === "sg4_validation") {
-        return { prefix: "Awaiting", emphasis: " Stage-gate 4 ", suffix: "Validation" };
+        return { prefix: "Awaiting", emphasis: " Validation Checkpoint 4", suffix: "" };
     }
     if (currentState === "business_need" || currentState === "time_horizon") {
         return { prefix: "Current step:", emphasis: " Business Need", suffix: "" };
@@ -46,7 +46,7 @@ export function flowStatusMessage(currentState: SourcingFlowState): FlowStatusMe
     if (currentState === "export") {
         return { prefix: "Current step:", emphasis: " PoC Preparation", suffix: "" };
     }
-    return { prefix: "Awaiting", emphasis: " Stage-gate 1 ", suffix: "Validation" };
+    return { prefix: "Awaiting", emphasis: " Validation Checkpoint 1", suffix: "" };
 }
 
 export function FlowStatusLine({ currentState }: { currentState: SourcingFlowState }) {
@@ -114,7 +114,7 @@ export function IpmFlowShell({ children, workflowState, onStepClick }: IpmFlowSh
             <main className="ipm-sourcing-page">
                 <section className="ipm-flow-intro">
                     <h1>
-                        IPM Flow - <span>INNOVATION PROGRESS MODEL FLOW</span>
+                        <span>INNOVATION PROCESS MODEL FLOW</span>
                     </h1>
                     <FlowStatusLine currentState={workflowState} />
                 </section>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 export type EvaluationScoreKey = "fit" | "feasibility" | "cost" | "innovation";
 
 export type EvaluationScoreSet = Record<EvaluationScoreKey, number>;
@@ -33,10 +35,10 @@ const SCORE_LABELS: Array<{ key: EvaluationScoreKey; label: string; weight: stri
 ];
 
 const IVI_DIMENSIONS = [
-    { weight: "0.35", label: "Impact" },
-    { weight: "0.25", label: "Maturity" },
-    { weight: "0.25", label: "Expertise" },
-    { weight: "0.15", label: "Duration" },
+    { percent: "35%", label: "Impact", description: "Expected business value, strategic relevance, and measurable outcome potential." },
+    { percent: "25%", label: "Maturity", description: "Readiness of the solution, evidence, implementation clarity, and delivery confidence." },
+    { percent: "25%", label: "Expertise", description: "Availability of DXC capability, domain knowledge, and skills required to execute." },
+    { percent: "15%", label: "Duration", description: "Estimated speed to prepare and execute the PoC; shorter timelines score higher." },
 ] as const;
 
 function scorePercent(value: number) {
@@ -54,11 +56,10 @@ export function IVIFormulaCard() {
         <section className="qualification-card qualification-formula-card" aria-label="Innovation Value Index formula">
             <header className="ivi-formula-head">
                 <div className="ivi-formula-title-row">
-                    <h3 className="ivi-formula-title">IVI</h3>
-                    <p className="ivi-formula-fullname">Innovation Value Index</p>
+                    <h3 className="ivi-formula-title">Innovation Value Index</h3>
                 </div>
                 <p className="ivi-formula-intro">
-                    Four weighted dimensions (1–5 each) combined into a score out of 100.
+                    Four 1-5 ratings are weighted and converted into an Innovation Value Index percentage.
                 </p>
             </header>
 
@@ -66,16 +67,20 @@ export function IVIFormulaCard() {
                 {IVI_DIMENSIONS.map((dimension, index) => (
                     <span className="ivi-formula-term-group" key={dimension.label}>
                         {index > 0 && <span className="ivi-formula-operator" aria-hidden="true">+</span>}
-                        <span className="ivi-formula-term">
-                            <span className="ivi-formula-weight">{dimension.weight}</span>
+                        <span
+                            className="ivi-formula-term"
+                            tabIndex={0}
+                            data-tooltip={dimension.description}
+                            aria-label={`${dimension.label}: ${dimension.description}`}
+                        >
+                            <span className="ivi-formula-weight">{dimension.percent}</span>
                             <strong className="ivi-formula-label">{dimension.label}</strong>
                         </span>
                     </span>
                 ))}
                 <span className="ivi-formula-operator ivi-formula-operator-equals" aria-hidden="true">=</span>
                 <span className="ivi-formula-result">
-                    <span className="ivi-formula-result-badge">IVI</span>
-                    <span className="ivi-formula-result-scale">/ 100</span>
+                    <span className="ivi-formula-result-badge">IVI%</span>
                 </span>
             </div>
         </section>
@@ -93,9 +98,10 @@ export function SolutionScoreCard({
     active: boolean;
     onSelect: () => void;
 }) {
+    const [showAllExplanations, setShowAllExplanations] = useState(false);
+
     return (
-        <button
-            type="button"
+        <article
             className={`qualification-card solution-score-card${active ? " is-active" : ""}`}
             onClick={onSelect}
         >
@@ -116,35 +122,54 @@ export function SolutionScoreCard({
                 <span>{solution.scoreSource || "AI scored"}</span>
             </div>
             <div className="score-grid">
-                {SCORE_LABELS.map((score) => (
-                    <div key={score.key} className="mini-score">
+                {SCORE_LABELS.map((score) => {
+                    const isExpanded = showAllExplanations;
+
+                    return (
+                    <div key={score.key} className={`mini-score mini-score-collapsible${isExpanded ? " is-expanded" : ""}`}>
                         <div className="mini-score-top">
                             <span>{score.label}</span>
-                            <strong>{solution.scores[score.key]}/5</strong>
+                            <div className="mini-score-top-actions">
+                                <strong>{solution.scores[score.key]}/5</strong>
+                                <button
+                                    type="button"
+                                    className="mini-score-toggle"
+                                    aria-expanded={isExpanded}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setShowAllExplanations((current) => !current);
+                                    }}
+                                >
+                                    {isExpanded ? "Hide" : "Explain"}
+                                </button>
+                            </div>
                         </div>
                         <i aria-hidden="true">
                             <em style={{ width: scorePercent(solution.scores[score.key]) }} />
                         </i>
-                        <p className="mini-score-rationale">
-                            {solution.scoreJustifications?.[score.key] ? (
-                                <>
-                                    <span className={`mini-score-source mini-score-source-${solution.scoreJustifications[score.key]!.source}`}>
-                                        {solution.scoreJustifications[score.key]!.source === "ai"
-                                            ? "AI"
-                                            : solution.scoreJustifications[score.key]!.source === "derived"
-                                              ? "Derived"
-                                              : "Estimate"}
-                                    </span>
-                                    {solution.scoreJustifications[score.key]!.text}
-                                </>
-                            ) : (
-                                "Gap-analysis rationale will appear here once IVI scores are generated."
-                            )}
-                        </p>
+                        {isExpanded && (
+                            <p className="mini-score-rationale">
+                                {solution.scoreJustifications?.[score.key] ? (
+                                    <>
+                                        <span className={`mini-score-source mini-score-source-${solution.scoreJustifications[score.key]!.source}`}>
+                                            {solution.scoreJustifications[score.key]!.source === "ai"
+                                                ? "AI"
+                                                : solution.scoreJustifications[score.key]!.source === "derived"
+                                                  ? "Derived"
+                                                  : "Estimate"}
+                                        </span>
+                                        {solution.scoreJustifications[score.key]!.text}
+                                    </>
+                                ) : (
+                                    "Gap-analysis rationale will appear here once IVI scores are generated."
+                                )}
+                            </p>
+                        )}
                     </div>
-                ))}
+                    );
+                })}
             </div>
-        </button>
+        </article>
     );
 }
 
@@ -259,9 +284,32 @@ export function EvaluationStep({
     hasInitiative: boolean;
 }) {
     const activeSolution = solutions.find((solution) => solution.id === activeId) || solutions[0];
+    const activeIndex = solutions.findIndex((solution) => solution.id === activeSolution?.id);
+    const currentIndex = activeIndex >= 0 ? activeIndex : 0;
+    const canGoPrev = currentIndex > 0;
+    const canGoNext = currentIndex < solutions.length - 1;
+
+    const goPrev = () => {
+        if (!canGoPrev) return;
+        onActiveChange(solutions[currentIndex - 1].id);
+    };
+
+    const goNext = () => {
+        if (!canGoNext) return;
+        onActiveChange(solutions[currentIndex + 1].id);
+    };
 
     return (
-        <section className="ipm-sourcing-workspace ipm-qualification-workspace">
+        <section className="ipm-sourcing-workspace ipm-qualification-workspace ipm-evaluation-workspace">
+            <EvaluationActionsPanel
+                solutions={solutions}
+                activeSolution={activeSolution}
+                onBack={onBack}
+                onContinue={onContinue}
+                canContinue={canContinue}
+                hasInitiative={hasInitiative}
+            />
+
             <div className="ipm-step-column">
                 <h2 className="ipm-step-title">
                     STEP 3 - <span>EVALUATION</span>
@@ -272,28 +320,45 @@ export function EvaluationStep({
 
                 <div className="qualification-main">
                     <IVIFormulaCard />
-                    <div className="solution-score-list">
-                        {solutions.map((solution, index) => (
+                    <div className="solution-score-list solution-score-carousel">
+                        {canGoPrev ? (
+                            <button
+                                type="button"
+                                className="solution-nav-arrow solution-nav-arrow-prev"
+                                onClick={goPrev}
+                                aria-label="Show previous solution"
+                            >
+                                &lt;
+                            </button>
+                        ) : (
+                            <span className="solution-nav-spacer" aria-hidden="true" />
+                        )}
+
+                        {activeSolution && (
                             <SolutionScoreCard
-                                key={solution.id}
-                                solution={solution}
-                                rank={index + 1}
-                                active={solution.id === activeSolution?.id}
-                                onSelect={() => onActiveChange(solution.id)}
+                                key={activeSolution.id}
+                                solution={activeSolution}
+                                rank={currentIndex + 1}
+                                active
+                                onSelect={() => onActiveChange(activeSolution.id)}
                             />
-                        ))}
+                        )}
+
+                        {canGoNext ? (
+                            <button
+                                type="button"
+                                className="solution-nav-arrow solution-nav-arrow-next"
+                                onClick={goNext}
+                                aria-label="Show next solution"
+                            >
+                                &gt;
+                            </button>
+                        ) : (
+                            <span className="solution-nav-spacer" aria-hidden="true" />
+                        )}
                     </div>
                 </div>
             </div>
-
-            <EvaluationActionsPanel
-                solutions={solutions}
-                activeSolution={activeSolution}
-                onBack={onBack}
-                onContinue={onContinue}
-                canContinue={canContinue}
-                hasInitiative={hasInitiative}
-            />
         </section>
     );
 }

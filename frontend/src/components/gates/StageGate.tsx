@@ -1,5 +1,5 @@
 /**
- * StageGate — Reusable modal for SG-1, SG-2, SG-3 decision gates.
+ * StageGate — Reusable modal for VC-1, VC-2, VC-3 decision checkpoints.
  * Shows a checklist summary + GO / REWORK / STOP buttons.
  * REWORK and STOP require a note/reason before confirming.
  */
@@ -21,6 +21,10 @@ interface StageGateProps {
     onRework: (note: string) => void;
     onStop: (reason: string) => void;
     onClose: () => void;
+}
+
+function checkpointLabel(gateId: StageGateProps["gateId"]) {
+    return gateId.replace("SG-", "VC-");
 }
 
 export function StageGate({
@@ -48,7 +52,7 @@ export function StageGate({
                 {/* Title */}
                 <div className="gate-title">
                     <div className="gate-title-diamond" />
-                    {gateId} — {title}
+                    {checkpointLabel(gateId)} — {title}
                 </div>
 
                 {/* Checklist */}

@@ -67,7 +67,7 @@ export function Sg3ValidationPanel({
                             onBack={onRework}
                             onValidate={onGo}
                             isValidateDisabled={!hasSelection}
-                            disabledReason={!hasSelection ? "Select at least one solution before validating SG-3." : undefined}
+                            disabledReason={!hasSelection ? "Select at least one solution before validating VC-3." : undefined}
                         />
                     </motion.div>
                 </motion.div>

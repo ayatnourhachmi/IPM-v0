@@ -123,6 +123,19 @@ function isStepLineCompleted(phaseStatus: PhaseStatus, stepStatus: StepStatus) {
     return phaseStatus === "completed" || stepStatus === "completed";
 }
 
+function getStepLabel(step: WorkflowStep, phaseId: PhaseId, phaseStatus: PhaseStatus): string {
+    if (phaseId === "sourcing" && step.id === "business_need") {
+        return phaseStatus === "active" ? "Business Need" : "BN";
+    }
+    if (phaseId === "delivery" && step.id === "recommendations") {
+        return phaseStatus === "active" ? "Recommendations" : "Recos";
+    }
+    if (phaseId === "delivery" && step.id === "export") {
+        return phaseStatus === "active" ? "PoC Preparation" : "PoC Prepa";
+    }
+    return step.label;
+}
+
 function renderStepNode(phaseId: PhaseId, phaseStatus: PhaseStatus, stepStatus: StepStatus) {
     if (stepStatus === "completed") {
         const variant =
@@ -178,6 +191,7 @@ export function SourcingWorkflowProgress({
                                 <div className="ipm-flow-steps">
                                     {phase.steps.map((step, stepIndex) => {
                                         const stepStatus = getStepStatus(step.id, currentState);
+                                        const stepLabel = getStepLabel(step, phase.id, phaseStatus);
 
                                         return (
                                             <div className="ipm-flow-step-group" key={step.id}>
@@ -186,13 +200,13 @@ export function SourcingWorkflowProgress({
                                                     className={`ipm-flow-step ${stepStatus}${onStepClick ? " clickable" : ""}`}
                                                     onClick={() => onStepClick?.(step.id)}
                                                     aria-current={stepStatus === "active" ? "step" : undefined}
-                                                    aria-label={`Open ${step.badge}: ${step.label}`}
+                                                    aria-label={`Open ${step.badge}: ${stepLabel}`}
                                                 >
                                                     <span className="ipm-flow-step-number">{step.badge}</span>
                                                     <span className="ipm-flow-node">
                                                         {renderStepNode(phase.id, phaseStatus, stepStatus)}
                                                     </span>
-                                                    <span className="ipm-flow-step-label">{step.label}</span>
+                                                    <span className="ipm-flow-step-label">{stepLabel}</span>
                                                 </button>
                                                 {stepIndex < phase.steps.length - 1 && (
                                                     <div

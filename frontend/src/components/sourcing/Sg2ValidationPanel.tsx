@@ -101,7 +101,7 @@ export function Sg2ValidationPanel({ open, onGo, onRework }: Sg2ValidationPanelP
                             onBack={onRework}
                             onValidate={onGo}
                             isValidateDisabled={!hasSolutions}
-                            disabledReason={!hasSolutions ? "Select at least one solution before validating SG-2." : undefined}
+                            disabledReason={!hasSolutions ? "Select at least one solution before validating VC-2." : undefined}
                         />
                     </motion.div>
                 </motion.div>

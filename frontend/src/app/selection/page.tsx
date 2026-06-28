@@ -1,5 +1,5 @@
 /**
- * Selection page (QUALIFICATION PHASE - after SG-3 GO).
+ * Selection page (QUALIFICATION PHASE - after VC-3 GO).
  * Reads the auto-evaluated ranking and lets the user choose the final solution(s)
  * to carry into the Delivery phase / Recos.
  */
@@ -97,12 +97,6 @@ function normalizeEvaluationState(value: unknown): EvaluationState {
     };
 }
 
-function formatTimestamp(value?: string) {
-    if (!value) return "Not saved yet";
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
-}
-
 function strengthFor(row: EvaluationRow, rank: number) {
     if (rank === 0) return "Highest IVI score with the best overall balance across qualification criteria.";
     if (row.scores.fit >= 4) return "Strong business impact and a clear connection to the original need.";
@@ -129,7 +123,7 @@ function toSelectionSolutions(rows: EvaluationRow[]): SelectionSolution[] {
         strength: strengthFor(row, index),
         risk: riskFor(row),
         whySelected: index === 0
-            ? "Recommended by the IVI ranking for SG-3 validation."
+            ? "Recommended by the IVI ranking for the third validation checkpoint."
             : "Available as a qualified alternative from Evaluation.",
     }));
 }
@@ -140,7 +134,6 @@ function SelectionPageContent() {
     const ipmId = searchParams.get("id") || undefined;
     const [evaluationState, setEvaluationState] = useState<EvaluationState>({ rows: [] });
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [savedAt, setSavedAt] = useState<string | undefined>(undefined);
     const [showGate, setShowGate] = useState(false);
     const [transitionError, setTransitionError] = useState<string | null>(null);
 
@@ -150,7 +143,6 @@ function SelectionPageContent() {
             try {
                 const parsed = normalizeEvaluationState(JSON.parse(saved));
                 setEvaluationState(parsed);
-                setSavedAt(parsed.updated_at);
                 const preselected = parsed.rows.length > 0 ? [parsed.rows[0].id] : [];
                 setSelectedIds(new Set(preselected));
             } catch {
@@ -206,7 +198,7 @@ function SelectionPageContent() {
             currentStatus = updated.status as Status;
             guard += 1;
             if (guard > 6) {
-                throw new Error("Too many status transitions while validating SG-3.");
+                throw new Error("Too many status transitions while validating VC-3.");
             }
         }
     };
@@ -223,7 +215,6 @@ function SelectionPageContent() {
                 onValidate={proceedToRecos}
                 canValidate={Boolean(ipmId) && selectedRows.length > 0}
                 hasInitiative={Boolean(ipmId)}
-                savedAt={formatTimestamp(savedAt)}
                 transitionError={transitionError}
             />
 
@@ -248,7 +239,7 @@ function SelectionPageContent() {
                             router.push(`/recos?id=${ipmId}`);
                         } catch (error) {
                             setShowGate(false);
-                            setTransitionError(error instanceof Error ? error.message : "Unable to validate SG-3.");
+                            setTransitionError(error instanceof Error ? error.message : "Unable to validate VC-3.");
                         }
                     }}
                     onRework={() => setShowGate(false)}

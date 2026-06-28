@@ -26,8 +26,12 @@ interface GateModalProps {
     onGo: () => void;
     onRework: (note: string) => void;
     onStop: (reason: string) => void;
-    /** Optional content rendered above the checklist (e.g., SG-2 solution recap). */
+    /** Optional content rendered above the checklist (e.g., VC-2 solution recap). */
     headerContent?: React.ReactNode;
+}
+
+function checkpointLabel(gateId: string) {
+    return gateId.replace("SG-", "VC-");
 }
 
 export default function GateModal({ isOpen, onClose, gate, onGo, onRework, onStop, headerContent }: GateModalProps) {
@@ -110,7 +114,7 @@ export default function GateModal({ isOpen, onClose, gate, onGo, onRework, onSto
                                     letterSpacing: "0.08em",
                                     textTransform: "uppercase",
                                 }}>
-                                    {gate.id}
+                                    {checkpointLabel(gate.id)}
                                 </span>
                                 <button
                                     onClick={onClose}

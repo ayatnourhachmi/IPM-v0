@@ -1,6 +1,6 @@
 /**
  * Recommendations and Output page (DELIVERY PHASE).
- * SG-4 gate must be passed before PDF/DOCX export buttons become active.
+ * VC-4 must be passed before PDF/DOCX export buttons become active.
  */
 
 "use client";

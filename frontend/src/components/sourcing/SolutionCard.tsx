@@ -19,17 +19,19 @@ export function SolutionCard({ solution, selected, onSelect }: SolutionCardProps
             <div className="ipm-solution-copy">
                 {solution.badge && <span className="ipm-solution-badge">{solution.badge}</span>}
                 <h3>{solution.title}</h3>
-                {selected && (
-                    <>
-                        <p>{solution.description}</p>
-                        {solution.tags && solution.tags.length > 0 && (
-                            <div className="ipm-solution-tags">
-                                {solution.tags.map((tag) => (
-                                    <span key={tag}>{tag}</span>
-                                ))}
-                            </div>
-                        )}
-                    </>
+                {solution.description && (
+                    <p
+                        className={`ipm-solution-description${selected ? "" : " ipm-solution-description--preview"}`}
+                    >
+                        {solution.description}
+                    </p>
+                )}
+                {selected && solution.tags && solution.tags.length > 0 && (
+                    <div className="ipm-solution-tags">
+                        {solution.tags.map((tag) => (
+                            <span key={tag}>{tag}</span>
+                        ))}
+                    </div>
                 )}
             </div>
             {selected ? (

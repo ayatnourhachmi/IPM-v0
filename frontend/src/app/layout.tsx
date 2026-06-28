@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "IPM — Innovation Progress Model",
+    title: "IPM — Innovation Process Model",
     description: "Innovation portfolio management platform. Submit and manage your business needs.",
 };
 
