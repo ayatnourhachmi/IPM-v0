@@ -19,7 +19,6 @@ export function DeliveryStep({
     generationError,
     gateCleared,
     onValidateSg4,
-    onContinueToExport,
 }: {
     deliverySolutions: DeliverySolution[];
     recommendations: SolutionRecommendations[];
@@ -27,7 +26,6 @@ export function DeliveryStep({
     generationError: string | null;
     gateCleared: boolean;
     onValidateSg4: () => void;
-    onContinueToExport: () => void;
 }) {
     const [activeIndex, setActiveIndex] = useState(0);
     const activeRecommendation = recommendations[activeIndex];
@@ -59,17 +57,13 @@ export function DeliveryStep({
                         </span>
                     </div>
 
-                    <div className="qualification-actions delivery-board-actions">
-                        {!gateCleared ? (
+                    {!gateCleared && (
+                        <div className="qualification-actions delivery-board-actions">
                             <button type="button" className="ipm-primary-action" onClick={onValidateSg4}>
                                 Validate
                             </button>
-                        ) : (
-                            <button type="button" className="ipm-primary-action" onClick={onContinueToExport}>
-                                Continue to PoC preparation
-                            </button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </aside>
 

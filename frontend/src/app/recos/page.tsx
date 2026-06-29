@@ -76,6 +76,7 @@ function RecosPageContent() {
             .then((need) => {
                 if (need.status === "delivery") {
                     setGateCleared(true);
+                    setDeliveryView("poc_export");
                 }
             })
             .catch(() => {
@@ -269,7 +270,6 @@ function RecosPageContent() {
                     isGenerating={isGenerating}
                     generationError={generationError}
                     onValidateSg4={() => setShowGate(true)}
-                    onContinueToExport={() => setDeliveryView("poc_export")}
                 />
             )}
 
@@ -287,6 +287,7 @@ function RecosPageContent() {
                         }
                         setGateCleared(true);
                         setShowGate(false);
+                        setDeliveryView("poc_export");
                     }}
                     onRework={() => setShowGate(false)}
                     onAbandon={() => {

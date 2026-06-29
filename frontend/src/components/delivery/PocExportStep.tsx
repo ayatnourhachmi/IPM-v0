@@ -49,7 +49,6 @@ export function PocExportStep({
         <section className="ipm-sourcing-workspace ipm-delivery-workspace ipm-poc-export-workspace">
             <aside className="ipm-summary-panel ipm-delivery-actions">
                 <div className="qualification-card delivery-summary-card">
-                    <div className="qualification-section-heading">PoC preparation</div>
                     <h2>Export package</h2>
                     <p className="delivery-summary-copy">
                         Choose one or more bundles to include, then download or send the PoC preparation document.
@@ -99,15 +98,17 @@ export function PocExportStep({
                     <div>
                         <span className="qualification-section-heading">Export selection</span>
                         <p>Choose one or more bundles to include in the DOCX export, PDF conversion, or email.</p>
+                        <span className="delivery-tag delivery-export-count-tag">{exportRecommendationsCount} included</span>
                     </div>
                     <div className="delivery-export-toolbar-actions">
-                        <span className="delivery-tag">{exportRecommendationsCount} included</span>
-                        <button type="button" className="ipm-outline-action delivery-toolbar-btn" onClick={onSelectAllExport}>
-                            Select all
-                        </button>
-                        <button type="button" className="ipm-outline-action delivery-toolbar-btn" onClick={onClearExport}>
-                            Clear
-                        </button>
+                        <div className="delivery-export-button-stack">
+                            <button type="button" className="ipm-outline-action delivery-toolbar-btn" onClick={onSelectAllExport}>
+                                Select all
+                            </button>
+                            <button type="button" className="ipm-outline-action delivery-toolbar-btn" onClick={onClearExport}>
+                                Clear
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -196,23 +197,29 @@ export function PocExportStep({
                                 onChange={(event) => onEmailRecipientChange(event.target.value)}
                                 disabled={isSendingEmail}
                             />
-                            <div className="delivery-export-toolbar-actions">
-                                <button
-                                    type="button"
-                                    className={`ipm-outline-action delivery-toolbar-btn${emailFormat === "pdf" ? " active" : ""}`}
-                                    onClick={() => onEmailFormatChange("pdf")}
-                                    disabled={isSendingEmail}
-                                >
-                                    PDF
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`ipm-outline-action delivery-toolbar-btn${emailFormat === "docx" ? " active" : ""}`}
-                                    onClick={() => onEmailFormatChange("docx")}
-                                    disabled={isSendingEmail}
-                                >
-                                    DOCX
-                                </button>
+                            <div className="email-format-options" role="radiogroup" aria-label="Email attachment format">
+                                <label className="email-format-option">
+                                    <input
+                                        type="radio"
+                                        name="delivery-email-format"
+                                        value="pdf"
+                                        checked={emailFormat === "pdf"}
+                                        onChange={() => onEmailFormatChange("pdf")}
+                                        disabled={isSendingEmail}
+                                    />
+                                    <span>PDF</span>
+                                </label>
+                                <label className="email-format-option">
+                                    <input
+                                        type="radio"
+                                        name="delivery-email-format"
+                                        value="docx"
+                                        checked={emailFormat === "docx"}
+                                        onChange={() => onEmailFormatChange("docx")}
+                                        disabled={isSendingEmail}
+                                    />
+                                    <span>DOCX</span>
+                                </label>
                             </div>
                             <button
                                 type="button"

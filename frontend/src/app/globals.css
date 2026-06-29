@@ -12563,8 +12563,10 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .delivery-export-toolbar-compact {
-  flex-direction: column !important;
-  gap: 12px !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
   padding: 14px 16px !important;
 }
 
@@ -12576,9 +12578,20 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   color: #827e7a !important;
 }
 
+.ipm-sourcing-redesign .delivery-export-count-tag {
+  margin-top: 10px !important;
+}
+
 .ipm-sourcing-redesign .delivery-export-toolbar-compact .delivery-export-toolbar-actions {
-  width: 100% !important;
+  width: auto !important;
+  min-width: 170px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  flex-wrap: nowrap !important;
   justify-content: flex-start !important;
+  align-items: stretch !important;
+  justify-items: stretch !important;
+  gap: 8px !important;
 }
 
 .ipm-sourcing-redesign .delivery-export-toolbar-actions {
@@ -12589,11 +12602,18 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .delivery-toolbar-btn {
-  width: auto !important;
+  width: 100% !important;
   min-height: 36px !important;
   height: 36px !important;
   padding: 0 14px !important;
   font-size: 12px !important;
+}
+
+.ipm-sourcing-redesign .delivery-export-button-stack {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+  width: 100% !important;
 }
 
 .ipm-sourcing-redesign .delivery-tag {
@@ -12762,6 +12782,49 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 .ipm-sourcing-redesign .poc-export-card-email {
   border-color: rgba(72, 127, 245, 0.28) !important;
   background: linear-gradient(180deg, rgba(146, 145, 191, 0.08) 0%, #ffffff 100%) !important;
+}
+
+.ipm-sourcing-redesign .email-format-options {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.ipm-sourcing-redesign .email-format-option {
+  display: grid !important;
+  grid-template-columns: 16px minmax(0, auto) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  min-height: 44px !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #111 !important;
+  font-family: var(--ipm-figma-ui, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+  cursor: pointer !important;
+}
+
+.ipm-sourcing-redesign .email-format-option input {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  accent-color: var(--ipm-delivery-blue-end) !important;
+  cursor: pointer !important;
+}
+
+.ipm-sourcing-redesign .email-format-option:has(input:checked) {
+  background: rgba(72, 127, 245, 0.07) !important;
+  box-shadow: none !important;
+}
+
+.ipm-sourcing-redesign .email-format-option:has(input:disabled) {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
 }
 
 .ipm-sourcing-redesign .poc-export-card .ipm-outline-action:not(:disabled) {
