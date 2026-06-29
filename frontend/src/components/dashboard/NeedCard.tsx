@@ -1,156 +1,103 @@
-/**
- * NeedCard — Dashboard card for a single business need.
- */
-
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import type { BusinessNeed, Status } from "@/lib/types";
-import { HORIZON_LABELS } from "@/lib/types";
+import { HORIZON_LABELS, STATUS_LABELS } from "@/lib/types";
 
-const ACTIONS: Record<string, Array<{ label: string; status: Status; style: string }>> = {
-    draft: [
-        { label: "Submit", status: "submitted", style: "primary" },
-        { label: "Abandon", status: "abandoned", style: "danger" },
-    ],
-    submitted: [
-        { label: "Qualify", status: "in_qualification", style: "success" },
-        { label: "Abandon", status: "abandoned", style: "danger" },
-    ],
-    in_qualification: [
-        { label: "Deliver", status: "delivery", style: "success" },
-        { label: "Abandon", status: "abandoned", style: "danger" },
-    ],
-    rework: [
-        { label: "Re-submit", status: "submitted", style: "primary" },
-        { label: "Back to Draft", status: "draft", style: "" },
-    ],
-    delivery: [],     // terminal
-    abandoned: [],    // terminal
-};
+type DashboardPhase = "sourcing" | "qualification" | "delivery";
+type PhaseState = "completed" | "active" | "future" | "abandoned";
+
+const PHASES: Array<{ id: DashboardPhase; label: string }> = [
+    { id: "sourcing", label: "Sourcing" },
+    { id: "qualification", label: "Qualification" },
+    { id: "delivery", label: "Delivery" },
+];
+
+function routeForStatus(status: Status) {
+    if (status === "submitted" || status === "solutions_reviewed") return "/evaluation";
+    if (status === "in_qualification") return "/selection";
+    if (status === "selected" || status === "delivery") return "/recos";
+    return "/sourcing";
+}
+
+function phaseState(phase: DashboardPhase, status: Status): PhaseState {
+    if (status === "abandoned") return "abandoned";
+    if (status === "delivery") return "completed";
+
+    const activePhase: DashboardPhase =
+        status === "selected"
+            ? "delivery"
+            : status === "in_qualification" || status === "solutions_reviewed"
+              ? "qualification"
+              : "sourcing";
+
+    const order = PHASES.findIndex((item) => item.id === phase);
+    const activeOrder = PHASES.findIndex((item) => item.id === activePhase);
+
+    if (order < activeOrder) return "completed";
+    if (order === activeOrder) return "active";
+    return "future";
+}
+
+function terminalLabel(status: Status) {
+    if (status === "delivery") return "Completed";
+    if (status === "abandoned") return "Abandoned";
+    return STATUS_LABELS[status];
+}
 
 interface NeedCardProps {
     need: BusinessNeed;
-    onUpdateStatus: (needId: string, status: Status, note?: string) => Promise<void>;
 }
 
-export function NeedCard({ need, onUpdateStatus }: NeedCardProps) {
+export function NeedCard({ need }: NeedCardProps) {
     const router = useRouter();
-    const [reworkNote, setReworkNote] = useState("");
-    const [showReworkInput, setShowReworkInput] = useState(false);
-    const [isUpdating, setIsUpdating] = useState(false);
+    const isTerminal = need.status === "delivery" || need.status === "abandoned";
+    const actionLabel = isTerminal ? "View" : "Continue";
 
-    const actions = ACTIONS[need.status] || [];
-
-    const handleAction = async (status: Status) => {
-        if (status === "abandoned" && !confirm("Confirm abandoning this initiative?")) return;
-
-        setIsUpdating(true);
-        try {
-            await onUpdateStatus(need.id, status);
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-
-    const handleReworkSubmit = async () => {
-        if (!reworkNote.trim()) return;
-        setIsUpdating(true);
-        try {
-            await onUpdateStatus(need.id, "rework", reworkNote.trim());
-            setShowReworkInput(false);
-            setReworkNote("");
-        } finally {
-            setIsUpdating(false);
-        }
+    const openNeed = () => {
+        router.push(`${routeForStatus(need.status)}?id=${need.id}`);
     };
 
     return (
-        <div className={`need-card${need.status === "abandoned" ? " abandoned" : ""}`}>
+        <article className={`need-card status-${need.status}`}>
             <div className="need-header">
-                <span className="bn-id" style={{ cursor: "pointer", textDecoration: "underline" }}
-                    onClick={() => {
-                        let target = "/discovery";
-                        if (need.status === "submitted") target = "/evaluation";
-                        else if (need.status === "in_qualification") target = "/selection";
-                        else if (need.status === "delivery") target = "/recos";
-                        router.push(`${target}?id=${need.id}`);
-                    }}
-                >
-                    {need.id}
+                <span className="bn-id">{need.id}</span>
+                <span className={`dashboard-status-pill status-${need.status}`}>
+                    {terminalLabel(need.status)}
                 </span>
-                <StatusBadge status={need.status} />
             </div>
 
             <p className="need-pitch">{need.pitch}</p>
 
+            <div className="need-phase-strip" aria-label={`${need.id} phase status`}>
+                {PHASES.map((phase) => {
+                    const state = phaseState(phase.id, need.status);
+                    return (
+                        <span key={phase.id} className={`need-phase-dot ${state}`}>
+                            <i aria-hidden="true" />
+                            {phase.label}
+                        </span>
+                    );
+                })}
+            </div>
+
             <div className="need-meta">
-                <span className="tag-chip amber" style={{ fontSize: 10 }}>
-                    {HORIZON_LABELS[need.horizon].label}
-                </span>
-                {need.tags.domain.slice(0, 3).map((d) => (
-                    <span key={d.value} className="tag-chip blue" style={{ fontSize: 10 }}>{d.value}</span>
+                <span className="tag-chip amber">{HORIZON_LABELS[need.horizon].label}</span>
+                {need.tags.domain.slice(0, 3).map((domain) => (
+                    <span key={domain.value} className="tag-chip blue">{domain.value}</span>
                 ))}
             </div>
 
             {need.rework_note && (
                 <div className="need-rework-note">
-                    <div className="need-rework-note-label">REWORK NOTE</div>
+                    <div className="need-rework-note-label">Rework note</div>
                     {need.rework_note}
                 </div>
             )}
 
-            {actions.length > 0 && (
-                <div className="need-actions">
-                    {actions.map((action) => (
-                        <button
-                            key={action.status}
-                            className={`action-btn ${action.style}`}
-                            onClick={() => handleAction(action.status)}
-                            disabled={isUpdating}
-                        >
-                            {action.label}
-                        </button>
-                    ))}
-
-                    {(need.status === "submitted" || need.status === "in_qualification") && (
-                        <button
-                            className="action-btn"
-                            onClick={() => setShowReworkInput(!showReworkInput)}
-                            disabled={isUpdating}
-                        >
-                            Rework
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {showReworkInput && (
-                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                    <input
-                        type="text"
-                        value={reworkNote}
-                        onChange={(e) => setReworkNote(e.target.value)}
-                        placeholder="Reason for rework…"
-                        style={{
-                            flex: 1,
-                            padding: "7px 12px",
-                            borderRadius: 8,
-                            border: "1px solid var(--border-input)",
-                            background: "var(--bg-input)",
-                            color: "var(--text-primary)",
-                            fontFamily: "var(--font-sans)",
-                            fontSize: 12,
-                            outline: "none",
-                        }}
-                    />
-                    <button className="action-btn primary" onClick={handleReworkSubmit} disabled={isUpdating}>
-                        OK
-                    </button>
-                </div>
-            )}
-        </div>
+            <button type="button" className="dashboard-card-action" onClick={openNeed}>
+                {actionLabel}
+            </button>
+        </article>
     );
 }

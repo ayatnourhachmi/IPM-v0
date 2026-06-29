@@ -2065,6 +2065,307 @@ html.dark .recap-value {
   border-color: var(--accent-border-sm);
 }
 
+/* Dashboard in the IPM Flow shell */
+.ipm-sourcing-redesign .ipm-dashboard-workspace {
+  width: 100% !important;
+  padding: 0 var(--ipm-page-gutter-md) 64px !important;
+}
+
+.ipm-sourcing-redesign .dashboard-panel {
+  width: min(100%, 1720px) !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  gap: 22px !important;
+}
+
+.ipm-sourcing-redesign .dash-header {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin: 18px 0 0 !important;
+  padding: 0 !important;
+}
+
+.ipm-sourcing-redesign .dash-title-block {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+.ipm-sourcing-redesign .dash-headline {
+  margin: 0 !important;
+  color: #000 !important;
+  font-family: "Molde Expanded", var(--font-display) !important;
+  font-size: clamp(20px, 1.45vw, 26px) !important;
+  font-weight: 500 !important;
+  line-height: 1.05 !important;
+}
+
+.ipm-sourcing-redesign .dash-count {
+  margin: 0 !important;
+  color: #827e7a !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+}
+
+.ipm-sourcing-redesign .dash-new-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 46px !important;
+  padding: 0 22px !important;
+  border-radius: 10px !important;
+  border: 1px solid #111 !important;
+  background: #111 !important;
+  color: #fff !important;
+  font-family: "Molde Expanded", var(--font-display) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  text-decoration: none !important;
+  text-transform: uppercase !important;
+}
+
+.ipm-sourcing-redesign .dash-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+  gap: 16px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.ipm-sourcing-redesign .need-card {
+  position: relative !important;
+  display: grid !important;
+  gap: 14px !important;
+  min-height: 268px !important;
+  padding: 18px !important;
+  border: 1px solid var(--ipm-figma-border) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, #fff 0%, #faf9f8 100%) !important;
+  box-shadow: 0 12px 28px rgba(18, 16, 15, 0.05) !important;
+  opacity: 1 !important;
+}
+
+.ipm-sourcing-redesign .need-card::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 0 auto !important;
+  height: 3px !important;
+  border-radius: 14px 14px 0 0 !important;
+  background: var(--ipm-figma-gradient-accent) !important;
+}
+
+.ipm-sourcing-redesign .need-card:hover {
+  border-color: rgba(255, 132, 84, 0.34) !important;
+  box-shadow: 0 16px 34px rgba(18, 16, 15, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+.ipm-sourcing-redesign .need-card.status-abandoned::before {
+  background: #aaa5a0 !important;
+}
+
+.ipm-sourcing-redesign .need-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.ipm-sourcing-redesign .bn-id {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  padding: 5px 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 132, 84, 0.36) !important;
+  background: rgba(255, 132, 84, 0.08) !important;
+  color: #ff7448 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.ipm-sourcing-redesign .dashboard-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 5px 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid #dedcda !important;
+  background: #fff !important;
+  color: #5d5854 !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.ipm-sourcing-redesign .dashboard-status-pill.status-delivery {
+  border-color: rgba(36, 151, 97, 0.28) !important;
+  background: rgba(36, 151, 97, 0.1) !important;
+  color: #13764b !important;
+}
+
+.ipm-sourcing-redesign .dashboard-status-pill.status-abandoned {
+  border-color: rgba(130, 126, 122, 0.28) !important;
+  background: rgba(130, 126, 122, 0.1) !important;
+  color: #5f5a56 !important;
+}
+
+.ipm-sourcing-redesign .dashboard-status-pill.status-in_qualification,
+.ipm-sourcing-redesign .dashboard-status-pill.status-solutions_reviewed,
+.ipm-sourcing-redesign .dashboard-status-pill.status-selected {
+  border-color: rgba(117, 117, 151, 0.28) !important;
+  background: rgba(117, 117, 151, 0.1) !important;
+  color: #5a5780 !important;
+}
+
+.ipm-sourcing-redesign .need-pitch {
+  margin: 0 !important;
+  color: #151515 !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  text-decoration: none !important;
+}
+
+.ipm-sourcing-redesign .need-phase-strip {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 6px !important;
+  border: 1px solid #dedcda !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #827e7a !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot i {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: #c9c5c1 !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot.completed {
+  border-color: rgba(36, 151, 97, 0.24) !important;
+  background: rgba(36, 151, 97, 0.08) !important;
+  color: #13764b !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot.completed i {
+  background: #249761 !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot.active {
+  border-color: rgba(255, 132, 84, 0.34) !important;
+  background: rgba(255, 132, 84, 0.08) !important;
+  color: #ff7448 !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot.active i {
+  background: #ff7448 !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot.abandoned {
+  border-color: rgba(130, 126, 122, 0.28) !important;
+  background: rgba(130, 126, 122, 0.08) !important;
+  color: #68615c !important;
+}
+
+.ipm-sourcing-redesign .need-phase-dot.abandoned i {
+  background: #827e7a !important;
+}
+
+.ipm-sourcing-redesign .need-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+.ipm-sourcing-redesign .need-meta .tag-chip {
+  font-size: 10px !important;
+}
+
+.ipm-sourcing-redesign .need-rework-note {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 159, 67, 0.24) !important;
+  background: rgba(255, 159, 67, 0.08) !important;
+  color: #6a4b1f !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.ipm-sourcing-redesign .need-rework-note-label {
+  margin: 0 0 4px !important;
+  color: #8a5a34 !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.ipm-sourcing-redesign .dashboard-card-action {
+  align-self: end !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  border: 1px solid #111 !important;
+  border-radius: 10px !important;
+  background: #111 !important;
+  color: #fff !important;
+  font-family: "Molde Expanded", var(--font-display) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+}
+
+.ipm-sourcing-redesign .dashboard-error {
+  width: min(100%, 460px) !important;
+  margin: 0 auto !important;
+  padding: 18px !important;
+  border: 1px solid rgba(255, 79, 66, 0.24) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 79, 66, 0.08) !important;
+  text-align: center !important;
+}
+
+.ipm-sourcing-redesign .dashboard-error p {
+  margin: 0 0 10px !important;
+  color: #7a3434 !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-size: 14px !important;
+}
+
+.ipm-sourcing-redesign .dashboard-error button {
+  border: 0 !important;
+  background: transparent !important;
+  color: #111 !important;
+  font-family: var(--ipm-figma-ui) !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
 /* ================================================================
    ACTION BUTTONS
    ================================================================ */
@@ -13365,6 +13666,11 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 /* Workflow step connectors — node-row alignment + even width across phases */
+.ipm-sourcing-redesign .ipm-flow-step-group,
+.workflow-bar-compact .ipm-flow-step-group {
+  display: contents !important;
+}
+
 .ipm-sourcing-redesign .ipm-flow-steps,
 .workflow-bar-compact .ipm-flow-steps {
   --ipm-flow-step-gap: 4px;
@@ -13432,6 +13738,49 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
     align-self: start !important;
     margin-top: calc(10px + var(--ipm-flow-step-gap) + (var(--ipm-flow-node-size) / 2) - 1px) !important;
   }
+}
+
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification.status-future .ipm-flow-steps,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery.status-future .ipm-flow-steps,
+.workflow-bar-compact .ipm-flow-phase.phase-qualification.status-future .ipm-flow-steps,
+.workflow-bar-compact .ipm-flow-phase.phase-delivery.status-future .ipm-flow-steps {
+  position: relative !important;
+}
+
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification.status-future .ipm-flow-steps::after,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery.status-future .ipm-flow-steps::after,
+.workflow-bar-compact .ipm-flow-phase.phase-qualification.status-future .ipm-flow-steps::after,
+.workflow-bar-compact .ipm-flow-phase.phase-delivery.status-future .ipm-flow-steps::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 43px !important;
+  width: clamp(72px, 34%, 112px) !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: #b8b8b8 !important;
+  transform: translateX(-50%) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification.status-future .ipm-flow-step,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery.status-future .ipm-flow-step,
+.workflow-bar-compact .ipm-flow-phase.phase-qualification.status-future .ipm-flow-step,
+.workflow-bar-compact .ipm-flow-phase.phase-delivery.status-future .ipm-flow-step,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification.status-future .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery.status-future .ipm-flow-step-line,
+.workflow-bar-compact .ipm-flow-phase.phase-qualification.status-future .ipm-flow-step-line,
+.workflow-bar-compact .ipm-flow-phase.phase-delivery.status-future .ipm-flow-step-line {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.ipm-sourcing-redesign .ipm-flow-phase.phase-qualification.status-future .ipm-flow-step-line,
+.ipm-sourcing-redesign .ipm-flow-phase.phase-delivery.status-future .ipm-flow-step-line,
+.workflow-bar-compact .ipm-flow-phase.phase-qualification.status-future .ipm-flow-step-line,
+.workflow-bar-compact .ipm-flow-phase.phase-delivery.status-future .ipm-flow-step-line {
+  opacity: 0 !important;
 }
 
 .ipm-sourcing-redesign .ipm-solution-description {
