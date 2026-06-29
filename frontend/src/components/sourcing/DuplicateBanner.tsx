@@ -8,11 +8,27 @@ import type { DuplicateMatch } from "@/lib/types";
 
 interface DuplicateBannerProps {
     matches: DuplicateMatch[];
-    onDismiss: () => void;
+    onContinueAnyway: () => void;
     onViewDuplicate: (id: string) => void;
 }
 
-export function DuplicateBanner({ matches, onDismiss, onViewDuplicate }: DuplicateBannerProps) {
+function duplicateStepLabel(status: DuplicateMatch["status"]) {
+    if (status === "draft" || status === "rework" || status === "abandoned") return "Step 1 - Business Need";
+    if (status === "submitted") return "Step 2 - Discovery";
+    if (status === "solutions_reviewed") return "Step 3 - Evaluation";
+    if (status === "in_qualification") return "Step 4 - Selection";
+    if (status === "selected") return "Step 5 - Recommendations";
+    if (status === "delivery") return "Step 6 - PoC Preparation";
+    return "Step 1 - Business Need";
+}
+
+function duplicateStatusLabel(status: DuplicateMatch["status"]) {
+    if (status === "abandoned") return "Abandoned";
+    if (status === "delivery") return "Completed";
+    return "Not completed";
+}
+
+export function DuplicateBanner({ matches, onContinueAnyway, onViewDuplicate }: DuplicateBannerProps) {
     if (matches.length === 0) return null;
 
     return (
@@ -27,25 +43,31 @@ export function DuplicateBanner({ matches, onDismiss, onViewDuplicate }: Duplica
             <div className="ipm-dup-banner-body">
                 {matches.map((match) => (
                     <div key={match.id} className="ipm-dup-match">
-                        <span className="ipm-dup-id">{match.id}</span>
-                        <p className="ipm-dup-text">
-                            {match.pitch.length > 80 ? `${match.pitch.slice(0, 80)}…` : match.pitch}
-                        </p>
-                        <span className="ipm-dup-score">{Math.round(match.similarity_score * 100)}%</span>
+                        <div className="ipm-dup-main">
+                            <div className="ipm-dup-meta-row">
+                                <span className="ipm-dup-id">{match.id}</span>
+                                <span className="ipm-dup-score">{Math.round(match.similarity_score * 100)}% similarity</span>
+                                <span className="ipm-dup-step">{duplicateStepLabel(match.status)}</span>
+                                <span className={`ipm-dup-state status-${match.status}`}>
+                                    {duplicateStatusLabel(match.status)}
+                                </span>
+                            </div>
+                            <p className="ipm-dup-text">{match.pitch}</p>
+                        </div>
                         <button
                             type="button"
                             className="ipm-outline-action ipm-dup-view"
                             onClick={() => onViewDuplicate(match.id)}
                         >
-                            View →
+                            Show
                         </button>
                     </div>
                 ))}
             </div>
 
             <div className="ipm-dup-banner-actions">
-                <button type="button" className="ipm-outline-action ipm-dup-continue" onClick={onDismiss}>
-                    Continue anyway
+                <button type="button" className="ipm-outline-action ipm-dup-continue" onClick={onContinueAnyway}>
+                    Continue Anyway
                 </button>
             </div>
         </section>

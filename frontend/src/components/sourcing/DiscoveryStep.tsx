@@ -87,12 +87,12 @@ export function DiscoveryStep({
 
                         <div className="ipm-external-tools">
                             <p>For more exploration, you can check these external tools</p>
-                            <button type="button" className="ipm-external-tool">
+                            <a className="ipm-external-tool" href="/external-tool?tool=startupconnect">
                                 Open StartupConnect AI <span aria-hidden="true">&#8599;</span>
-                            </button>
-                            <button type="button" className="ipm-external-tool">
+                            </a>
+                            <a className="ipm-external-tool" href="/external-tool?tool=aiwatch">
                                 Open AI Watch <span aria-hidden="true">&#8599;</span>
-                            </button>
+                            </a>
                         </div>
                     </>
                 ) : (

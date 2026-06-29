@@ -184,6 +184,15 @@ function isPastDiscoveryStatus(status: Status | undefined) {
         || status === "delivery";
 }
 
+function routeForNeedStatus(need: Pick<BusinessNeed, "id" | "status">) {
+    const query = `?id=${need.id}`;
+    if (need.status === "submitted") return `/discovery${query}`;
+    if (need.status === "solutions_reviewed") return `/evaluation${query}`;
+    if (need.status === "in_qualification") return `/selection${query}`;
+    if (need.status === "selected" || need.status === "delivery") return `/recos${query}`;
+    return `/sourcing${query}`;
+}
+
 function applyNeedSummary(
     need: BusinessNeed,
     setSummaryObjective: (value: string) => void,
@@ -221,6 +230,7 @@ export function SourcingShell({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
     const [showDuplicates, setShowDuplicates] = useState(false);
+    const [duplicatesBypassed, setDuplicatesBypassed] = useState(false);
 
     const [summaryObjective, setSummaryObjective] = useState("");
     const [summaryDomains, setSummaryDomains] = useState("");
@@ -365,6 +375,7 @@ export function SourcingShell({
             if (need.duplicate_matches && need.duplicate_matches.length > 0) {
                 setDuplicates(need.duplicate_matches);
                 setShowDuplicates(true);
+                setDuplicatesBypassed(false);
             }
 
             return need;
@@ -381,9 +392,14 @@ export function SourcingShell({
         if (!canContinue) return;
 
         setCurrentSourcingState("sg1_validation");
-        void createNeedIfPossible().catch(() => {
-            // Keep the UI moving with local state if the backend is temporarily unavailable.
-        });
+        setIsSubmitting(true);
+        void createNeedIfPossible()
+            .catch(() => {
+                // Keep the UI moving with local state if the backend is temporarily unavailable.
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+            });
     };
 
     const handleValidateStageGate = () => {
@@ -418,6 +434,22 @@ export function SourcingShell({
         if (duplicates.length > 0) {
             setShowDuplicates(true);
         }
+    };
+
+    const handleContinueAnywayFromDuplicates = () => {
+        setDuplicatesBypassed(true);
+        setShowDuplicates(false);
+    };
+
+    const handleShowDuplicate = (id: string) => {
+        setShowDuplicates(false);
+        void getNeed(id)
+            .then((need) => {
+                router.push(routeForNeedStatus(need));
+            })
+            .catch(() => {
+                router.push(`/sourcing?id=${id}`);
+            });
     };
 
     const handleLaunchDiscovery = async () => {
@@ -573,6 +605,8 @@ export function SourcingShell({
     };
 
     const renderMainState = () => {
+        const hasBlockingDuplicates = duplicates.length > 0 && !duplicatesBypassed;
+
         if (currentSourcingState === "sg1_validation") {
             return (
                 <StageGateValidation
@@ -594,15 +628,21 @@ export function SourcingShell({
                             onClick: handleAnalyzedStatusClick,
                         },
                         {
-                            label: duplicates.length > 0 ? "Potential duplicate detected" : "No duplicate detected",
-                            completed: duplicates.length === 0,
+                            label: isSubmitting
+                                ? "Checking for duplicates"
+                                : duplicates.length > 0
+                                ? duplicatesBypassed
+                                    ? "Duplicate review bypassed"
+                                    : "Potential duplicate detected"
+                                : "No duplicate detected",
+                            completed: !isSubmitting && !hasBlockingDuplicates,
                             onClick: handleDuplicateStatusClick,
                         },
                     ]}
                     isProcessing={isSubmitting}
                     onBack={() => setCurrentSourcingState("business_need")}
                     onValidate={handleValidateStageGate}
-                    disabledReason={duplicates.length > 0 ? "Resolve duplicate matches before validating VC-1." : "Complete all checklist items before validating VC-1."}
+                    disabledReason={isSubmitting ? "Checking duplicate matches before VC-1 validation." : hasBlockingDuplicates ? "Show a duplicate or choose Continue Anyway before validating." : "Complete all checklist items before validating VC-1."}
                 />
             );
         }
@@ -705,21 +745,8 @@ export function SourcingShell({
             {showDuplicates && duplicates.length > 0 && (
                 <DuplicateBanner
                     matches={duplicates}
-                    onDismiss={() => setShowDuplicates(false)}
-                    onViewDuplicate={(id) => {
-                        setShowDuplicates(false);
-                        void getNeed(id)
-                            .then((need) => {
-                                if (isPastDiscoveryStatus(need.status)) {
-                                    router.push(`/evaluation?id=${id}`);
-                                    return;
-                                }
-                                router.push(`/discovery?id=${id}&sg1=completed`);
-                            })
-                            .catch(() => {
-                                router.push(`/discovery?id=${id}&sg1=completed`);
-                            });
-                    }}
+                    onContinueAnyway={handleContinueAnywayFromDuplicates}
+                    onViewDuplicate={handleShowDuplicate}
                 />
             )}
 
