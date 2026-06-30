@@ -1,4 +1,4 @@
-"""LLM abstraction — single interface for Groq and Azure OpenAI providers."""
+"""LLM abstraction — single interface for OpenAI, Groq, and Azure OpenAI providers."""
 
 from __future__ import annotations
 
@@ -532,6 +532,34 @@ async def _complete_groq(system_prompt: str, user_prompt: str, response_format: 
     )
 
 
+async def _complete_openai(system_prompt: str, user_prompt: str, response_format: str | None) -> LLMResponse:
+    """Call OpenAI with the configured chat model."""
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    kwargs: dict = {
+        "model": settings.openai_model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.1,
+        "max_tokens": 1024,
+    }
+    if response_format == "json":
+        kwargs["response_format"] = {"type": "json_object"}
+
+    response = await client.chat.completions.create(**kwargs)
+    choice = response.choices[0]
+    return LLMResponse(
+        content=choice.message.content or "",
+        usage={
+            "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+        },
+    )
+
+
 async def _complete_azure(system_prompt: str, user_prompt: str, response_format: str | None) -> LLMResponse:
     """Call Azure OpenAI with GPT-4o."""
     from openai import AsyncAzureOpenAI
@@ -574,7 +602,10 @@ async def complete(
     """Unified LLM completion — dispatches to configured provider; optional Langfuse trace."""
     built = _build_prompt(prompt_name, variables)
 
-    if settings.llm_provider == "groq":
+    if settings.llm_provider == "openai":
+        response = await _complete_openai(built.system_prompt, built.user_prompt, response_format)
+        model_label = settings.openai_model
+    elif settings.llm_provider == "groq":
         response = await _complete_groq(built.system_prompt, built.user_prompt, response_format)
         model_label = "llama-3.3-70b-versatile"
     elif settings.llm_provider == "azure":

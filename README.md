@@ -155,7 +155,7 @@ The analyze endpoint is called with a debounce and minimum pitch length to reduc
 | `app/services/export_service.py` | PDF (ReportLab) and DOCX (python-docx) report generation |
 | `app/services/id_service.py` | Year-scoped BN-YYYY-NNN ID generation |
 | `app/services/validation_guards.py` | Post-LLM allow-lists for tags, org roles, risks, and KPIs |
-| `app/core/llm_client.py` | LLM provider (Groq / Azure), Langfuse prompt fetch, fallback templates, intent-wrapped user messages |
+| `app/core/llm_client.py` | LLM provider (OpenAI / Groq / Azure), Langfuse prompt fetch, fallback templates, intent-wrapped user messages |
 | `app/core/intent_prompt.py` | Wraps every call’s user context in explicit / implicit / strategic intent blocks |
 | `app/core/langfuse_tracking.py` | Attaches generations to parent traces (intent layers, variables, usage) |
 
@@ -202,7 +202,7 @@ Tables are created automatically at startup via `Base.metadata.create_all`. Star
 | Database | PostgreSQL 15 |
 | Vector DB | ChromaDB 0.5 |
 | Embeddings | Local `BAAI/bge-small-en-v1.5` or OpenAI |
-| LLM | Groq (`llama-3.3-70b-versatile`) or Azure OpenAI (GPT-4o) |
+| LLM | OpenAI (`gpt-4.1`) by default; Groq and Azure OpenAI remain configurable |
 | Observability | Langfuse (hosted prompts + traces; repo fallbacks when offline or outdated `nlp_tagging`) |
 | Export | ReportLab (PDF), python-docx (DOCX) |
 | Storage | MinIO |
@@ -278,14 +278,15 @@ npm run dev
 | `MINIO_ENDPOINT` | MinIO endpoint |
 | `MINIO_ACCESS_KEY` | MinIO access key |
 | `MINIO_SECRET_KEY` | MinIO secret key |
-| `LLM_PROVIDER` | `groq` or `azure` |
+| `LLM_PROVIDER` | `openai`, `groq`, or `azure` |
+| `OPENAI_API_KEY` | OpenAI API key for `LLM_PROVIDER=openai` and OpenAI embeddings |
+| `OPENAI_MODEL` | OpenAI model name (default: `gpt-4.1`) |
 | `GROQ_API_KEY` | Groq API key |
 | `AZURE_OPENAI_API_KEY` | Azure OpenAI key |
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint |
 | `AZURE_OPENAI_DEPLOYMENT` | Azure deployment name (default: `gpt-4o`) |
 | `AZURE_OPENAI_API_VERSION` | Azure API version |
 | `EMBEDDING_PROVIDER` | `local` or `openai` |
-| `OPENAI_API_KEY` | Required for OpenAI embeddings |
 | `LANGFUSE_PUBLIC_KEY` | Langfuse public key |
 | `LANGFUSE_SECRET_KEY` | Langfuse secret key |
 | `LANGFUSE_HOST` | Langfuse host URL |
@@ -369,4 +370,4 @@ Gap analysis, solution recommendations, and NLP flows can open Langfuse **parent
 - The first Docker build takes several minutes — the backend downloads and warms the local embedding model (`BAAI/bge-small-en-v1.5`).
 - If you change the DXC catalog Excel file, restart the API to re-seed ChromaDB and reload the capability context.
 - The `nlp_cache` Postgres table persists analyzed pitches across restarts. To force a fresh analysis, delete the relevant row or wait for the 24 h TTL to expire.
-- Groq free tier has a 100k token/day limit. The debounce and cache are tuned to stay within this for normal development usage.
+- When using a metered LLM provider, the debounce and cache reduce repeated calls during normal development usage.

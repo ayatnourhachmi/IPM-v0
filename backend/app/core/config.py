@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     minio_secure: bool = False
 
     # --- LLM Provider ---
-    llm_provider: str = "groq"  # "groq" | "azure"
+    llm_provider: str = "openai"  # "openai" | "groq" | "azure"
+    openai_model: str = "gpt-4.1"
     groq_api_key: str = ""
     azure_openai_api_key: str = ""
     azure_openai_endpoint: str = ""
