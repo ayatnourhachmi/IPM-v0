@@ -5161,7 +5161,7 @@
         </div>
       </div>
 
-      <section data-wf--sections-slot-section--section-theme="light" class="section_slot">
+      <section data-wf--sections-slot-section--section-theme="light" class="section_slot ipm-problem-intro-section">
         <div aria-hidden="true" data-wf--vertical-spacer--variant="none"
           class="vertical-spacer w-variant-00918645-014a-2038-8757-2fefc90dca42 has-border-bottom"></div>
         <div class="padding-global z-index-2">
@@ -5195,7 +5195,7 @@
         <div aria-hidden="true" data-wf--vertical-spacer--variant="none"
           class="vertical-spacer w-variant-00918645-014a-2038-8757-2fefc90dca42" style="display:none"></div>
       </section>
-      <section data-wf--sections-slot-section--section-theme="light" class="section_slot">
+      <section data-wf--sections-slot-section--section-theme="light" class="section_slot ipm-problem-workflow-section">
         <div aria-hidden="true" data-wf--vertical-spacer--variant="none"
           class="vertical-spacer w-variant-00918645-014a-2038-8757-2fefc90dca42 has-border-bottom" style="display:none"></div>
         <div class="padding-global z-index-2">
@@ -5204,13 +5204,13 @@
               class="vertical-spacer w-variant-00918645-014a-2038-8757-2fefc90dca42" style="display:none"></div>
             <div class="side-paddings-inner is-padding-none">
               <div class="slot_wrapper">
-                <div STYLE="aspect-ratio: 960/468;" fade-in-self="" class="image-component hide-mobile-landscape"><img
+                <div STYLE="aspect-ratio: 960/468;" fade-in-self="" class="image-component hide-mobile-landscape ipm-problem-workflow"><img
                     src="/landing-files/workflow.png"
                     loading="lazy" alt="IPM workflow pipeline."
                     class="cover-image hide-mobile-landscape" style="object-fit:contain;object-position:center;" /><img
                     src="/landing-files/workflow.png"
                     loading="lazy" alt="IPM workflow pipeline." class="cover-image show-mobile-landscape" style="object-fit:contain;object-position:center;" /></div>
-                <div STYLE="aspect-ratio: 960/468;" fade-in-self="" class="image-component show-mobile-landscape"><img
+                <div STYLE="aspect-ratio: 960/468;" fade-in-self="" class="image-component show-mobile-landscape ipm-problem-workflow"><img
                     src="/landing-files/workflow.png"
                     loading="lazy" alt="IPM workflow pipeline." class="cover-image hide-mobile-landscape" style="object-fit:contain;object-position:center;" /><img
                     src="/landing-files/workflow.png"
@@ -5326,7 +5326,7 @@
                           <div id="tab1" data-tabs="visual-item" role="tabpanel" class="home-tabs_visual-item">
                             <div class="home-tabs_visual-inner">
                               <div class="home-tabs_card">
-                                <h3 STYLE="max-width: 25ch" text-animate="" class="heading_component heading-style-h4">
+                                <h3 STYLE="max-width: 25ch" text-animate="" class="heading_component heading-style-h4 ipm-sourcing-card-heading">
                                   <div class="heading_text">AI-Powered Sourcing & Classification</div>
                                 </h3>
                                 <div STYLE="max-width: 50ch;"
@@ -10917,6 +10917,66 @@
       fill: currentColor !important;
       stroke: currentColor !important;
       opacity: 1 !important;
+    }
+  </style>
+
+  <style id="ipm-problem-workflow-layout">
+    .ipm-problem-intro-section .container-large.is-outlined-edges {
+      padding-bottom: 0 !important;
+    }
+
+    .ipm-problem-workflow-section {
+      margin-top: 0 !important;
+    }
+
+    .ipm-problem-workflow-section .side-paddings-inner.is-padding-none {
+      padding-left: clamp(1rem, 3vw, 2.5rem) !important;
+      padding-right: clamp(1rem, 3vw, 2.5rem) !important;
+    }
+
+    .ipm-problem-workflow {
+      width: min(100%, 78rem) !important;
+      margin: clamp(-4rem, -5vw, -2rem) auto 0 !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .ipm-problem-workflow .cover-image {
+      object-fit: contain !important;
+      object-position: center !important;
+    }
+
+    @media screen and (max-width: 767px) {
+      .ipm-problem-workflow-section {
+        margin-top: 0 !important;
+      }
+
+      .ipm-problem-workflow-section .side-paddings-inner.is-padding-none {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+
+      .ipm-problem-workflow {
+        margin-top: clamp(-2rem, -5vw, -1rem) !important;
+      }
+    }
+  </style>
+
+  <style id="ipm-sourcing-card-heading">
+    .ipm-sourcing-card-heading,
+    .ipm-sourcing-card-heading .heading_text {
+      font-family: var(--font-headings) !important;
+      font-size: clamp(2rem, 3vw, 3.25rem) !important;
+      font-weight: 700 !important;
+      line-height: 1.08 !important;
+      letter-spacing: 0 !important;
+    }
+
+    @media screen and (max-width: 767px) {
+      .ipm-sourcing-card-heading,
+      .ipm-sourcing-card-heading .heading_text {
+        font-size: clamp(1.75rem, 9vw, 2.5rem) !important;
+      }
     }
   </style>
 </body>
