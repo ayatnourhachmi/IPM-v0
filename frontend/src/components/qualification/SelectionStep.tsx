@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatIviPercent } from "@/lib/scores";
 import type { EvaluationSolution } from "./EvaluationStep";
 
 export type SelectionSolution = EvaluationSolution & {
-    fitScore: number;
+    fitScore: string;
     strength: string;
     risk: string;
     whySelected: string;
@@ -125,11 +126,11 @@ export function SelectableSolutionCard({
                         <h3>{solution.name}</h3>
                         <div className="selection-score-chips" aria-label={`${solution.name} scores`}>
                             <span>
-                                <strong>{solution.overall.toFixed(1)}</strong>
+                                <strong>{formatIviPercent(solution.overall)}</strong>
                                 IVI
                             </span>
                             <span>
-                                <strong>{solution.fitScore}%</strong>
+                                <strong>{solution.fitScore}</strong>
                                 Fit
                             </span>
                         </div>
@@ -172,7 +173,7 @@ export function SelectedSolutionPanel({
                             <li key={solution.id} className="selected-solution-item">
                                 <h2>{solution.name}</h2>
                                 <span className="selected-solution-ivi">
-                                    <strong>{solution.overall.toFixed(1)}</strong>
+                                    <strong>{formatIviPercent(solution.overall)}</strong>
                                     IVI
                                 </span>
                             </li>

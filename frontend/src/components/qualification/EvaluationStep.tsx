@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatIviPercent } from "@/lib/scores";
 
 export type EvaluationScoreKey = "fit" | "feasibility" | "cost" | "innovation";
 
@@ -112,7 +113,7 @@ export function SolutionScoreCard({
                     <p>{solution.description || "Candidate selected from Discovery and scored by the qualification model."}</p>
                 </div>
                 <div className="solution-ivi">
-                    <strong>{solution.overall.toFixed(1)}</strong>
+                    <strong>{formatIviPercent(solution.overall)}</strong>
                     <span>IVI</span>
                 </div>
             </div>
@@ -197,7 +198,7 @@ export function DecisionSummaryPanel({
                 <h2>{activeSolution ? activeSolution.name : "No candidate yet"}</h2>
                 {activeSolution && (
                     <span className="decision-ivi-pill">
-                        <strong>{activeSolution.overall.toFixed(1)}</strong>
+                        <strong>{formatIviPercent(activeSolution.overall)}</strong>
                         IVI
                     </span>
                 )}
@@ -215,11 +216,11 @@ export function DecisionSummaryPanel({
                     Candidates
                 </span>
                 <span>
-                    <strong>{average.toFixed(1)}</strong>
+                    <strong>{formatIviPercent(average)}</strong>
                     Avg IVI
                 </span>
                 <span>
-                    <strong>{best.toFixed(1)}</strong>
+                    <strong>{formatIviPercent(best)}</strong>
                     Best IVI
                 </span>
             </div>

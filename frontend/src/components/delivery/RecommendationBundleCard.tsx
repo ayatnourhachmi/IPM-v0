@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatIviPercent } from "@/lib/scores";
 import type { SolutionRecommendations } from "@/lib/types";
 
 type BundleTab = "technical" | "organizational" | "kpis";
@@ -17,6 +18,7 @@ export function RecommendationBundleCard({
 }) {
     const [tab, setTab] = useState<BundleTab>("technical");
     const relevanceScore = solutionMeta ? Math.max(0, Math.min(100, Math.round(solutionMeta.relevance))) : 0;
+    const iviScore = solutionMeta ? Math.max(0, Math.min(100, Math.round(solutionMeta.overall))) : 0;
 
     const tabs: Array<{ id: BundleTab; label: string; count: number }> = [
         { id: "technical", label: "Technical", count: rec.technical_recommendations.length },
@@ -49,10 +51,10 @@ export function RecommendationBundleCard({
                             <span
                                 className="delivery-rec-score-ring delivery-rec-score-ring--ivi"
                                 style={{
-                                    background: `conic-gradient(var(--ipm-delivery-blue-end) ${Math.round(solutionMeta.overall)}%, #e4e8f2 0)`,
+                                    background: `conic-gradient(var(--ipm-delivery-blue-end) ${iviScore}%, #e4e8f2 0)`,
                                 }}
                             >
-                                <span className="delivery-rec-score-inner">{solutionMeta.overall.toFixed(1)}</span>
+                                <span className="delivery-rec-score-inner">{formatIviPercent(solutionMeta.overall)}</span>
                             </span>
                             <span className="delivery-rec-metric-label">IVI</span>
                         </div>

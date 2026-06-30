@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { formatIviPercent } from "@/lib/scores";
 import { StageGateValidation } from "./StageGateValidation";
 
 type SelectedSolution = {
@@ -56,7 +57,7 @@ export function Sg3ValidationPanel({
                                 { label: "SELECTED SOLUTIONS", value: selectedNames || "None selected" },
                                 { label: "COUNT", value: hasSelection ? String(selectedSolutions.length) : "Pending" },
                                 { label: "FIT SCORE", value: selected ? `${selected.relevance}%` : "Pending" },
-                                { label: "IVI SCORE", value: selected ? selected.overall.toFixed(1) : "Pending" },
+                                { label: "IVI SCORE", value: selected ? formatIviPercent(selected.overall) : "Pending" },
                                 { label: "MAIN STRENGTH", value: hasSelection ? "Highest ranked delivery candidates" : "Pending" },
                             ]}
                             checklistItems={[

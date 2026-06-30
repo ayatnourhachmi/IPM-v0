@@ -109,6 +109,15 @@ function riskFor(row: EvaluationRow) {
     return "Keep assumptions visible during Delivery preparation.";
 }
 
+function fitLabelFor(row: EvaluationRow) {
+    const fitScore = row.gap_analysis?.fit_score;
+    if (typeof fitScore === "number" && Number.isFinite(fitScore)) {
+        return `${Math.max(0, Math.min(10, fitScore))}/10`;
+    }
+
+    return `${Math.max(0, Math.min(100, Math.round(row.relevance)))}%`;
+}
+
 function toSelectionSolutions(rows: EvaluationRow[]): SelectionSolution[] {
     return rows.map((row, index) => ({
         id: row.id,
@@ -119,7 +128,7 @@ function toSelectionSolutions(rows: EvaluationRow[]): SelectionSolution[] {
         description: row.description,
         status: index === 0 ? "Recommended" : index === 1 ? "Alternative" : "Reserve option",
         scoreSource: row.score_source,
-        fitScore: Math.max(row.relevance, Math.round(row.overall)),
+        fitScore: fitLabelFor(row),
         strength: strengthFor(row, index),
         risk: riskFor(row),
         whySelected: index === 0

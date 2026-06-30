@@ -10989,7 +10989,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .ipm-alignment-stack {
-  gap: 16px !important;
+  gap: 12px !important;
 }
 
 .ipm-sourcing-redesign .ipm-alignment-stack-shell {
@@ -11001,8 +11001,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .ipm-alignment-stack-viewport {
-  --ipm-alignment-card-slot: 240px;
-  min-height: calc((var(--ipm-alignment-card-slot) * 2) + 16px);
+  min-height: 0;
   max-height: none;
   overflow: visible;
 }
@@ -11042,11 +11041,11 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
 }
 
 .ipm-sourcing-redesign .ipm-alignment-card {
-  min-height: 118px !important;
+  min-height: 104px !important;
   border: 1px solid var(--ipm-figma-border) !important;
   border-radius: 16px !important;
   background: #fff !important;
-  padding: 20px 22px !important;
+  padding: 16px 22px !important;
   box-shadow: none !important;
 }
 
@@ -11079,7 +11078,7 @@ body:has(.ipm-sourcing-redesign) .theme-utility-tray {
   font-family: var(--ipm-figma-ui) !important;
   font-size: 14px !important;
   font-weight: 400 !important;
-  margin-top: 16px !important;
+  margin-top: 12px !important;
 }
 
 .ipm-sourcing-redesign .ipm-alignment-check-list li,
