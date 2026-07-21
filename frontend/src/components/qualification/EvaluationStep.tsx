@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatIviPercent } from "@/lib/scores";
 
-export type EvaluationScoreKey = "fit" | "feasibility" | "cost" | "innovation";
+export type EvaluationScoreKey = "fit" | "feasibility" | "cost" | "innovation" | "risk";
 
 export type EvaluationScoreSet = Record<EvaluationScoreKey, number>;
 
@@ -30,16 +30,18 @@ export type EvaluationSolution = {
 
 const SCORE_LABELS: Array<{ key: EvaluationScoreKey; label: string; weight: string }> = [
     { key: "fit", label: "Impact", weight: "35%" },
-    { key: "feasibility", label: "Maturity", weight: "25%" },
-    { key: "innovation", label: "Expertise", weight: "25%" },
-    { key: "cost", label: "Duration", weight: "15%" },
+    { key: "feasibility", label: "Maturity", weight: "20%" },
+    { key: "innovation", label: "Expertise", weight: "20%" },
+    { key: "cost", label: "Duration", weight: "10%" },
+    { key: "risk", label: "Risk", weight: "15%" },
 ];
 
 const IVI_DIMENSIONS = [
     { percent: "35%", label: "Impact", description: "Expected business value, strategic relevance, and measurable outcome potential." },
-    { percent: "25%", label: "Maturity", description: "Readiness of the solution, evidence, implementation clarity, and delivery confidence." },
-    { percent: "25%", label: "Expertise", description: "Availability of DXC capability, domain knowledge, and skills required to execute." },
-    { percent: "15%", label: "Duration", description: "Estimated speed to prepare and execute the PoC; shorter timelines score higher." },
+    { percent: "20%", label: "Maturity", description: "Readiness of the solution, evidence, implementation clarity, and delivery confidence." },
+    { percent: "20%", label: "Expertise", description: "Availability of DXC capability, domain knowledge, and skills required to execute." },
+    { percent: "10%", label: "Duration", description: "Estimated speed to prepare and execute the PoC; shorter timelines score higher." },
+    { percent: "15%", label: "Risk", description: "Risk posture of the solution; fewer and lower-severity risks score higher (5 = minimal risk)." },
 ] as const;
 
 function scorePercent(value: number) {
@@ -60,7 +62,7 @@ export function IVIFormulaCard() {
                     <h3 className="ivi-formula-title">Innovation Value Index</h3>
                 </div>
                 <p className="ivi-formula-intro">
-                    Four 1-5 ratings are weighted and converted into an Innovation Value Index percentage.
+                    Five 1-5 ratings are weighted and converted into an Innovation Value Index percentage.
                 </p>
             </header>
 
@@ -316,7 +318,7 @@ export function EvaluationStep({
                     STEP 3 - <span>EVALUATION</span>
                 </h2>
                 <p className="ipm-step-subtitle">
-                    Backend gap-analysis scores are translated into the IVI model for Impact, Maturity, Expertise, and Duration.
+                    Backend gap-analysis scores are translated into the IVI model for Impact, Maturity, Expertise, Duration, and Risk.
                 </p>
 
                 <div className="qualification-main">

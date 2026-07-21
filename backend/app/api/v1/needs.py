@@ -1038,6 +1038,27 @@ async def gap_analysis(
             except (TypeError, ValueError):
                 return _clamp_score_5(fallback)
 
+        def _compute_risk_score(risk_items: list) -> tuple[int, str]:
+            """Derive a 1-5 risk score from risk items (5 = minimal risk)."""
+            if not risk_items:
+                return 5, "No implementation or delivery risks were identified for this solution."
+            penalty = sum(
+                1.5 if getattr(r, "severity", "medium") == "high" else
+                0.8 if getattr(r, "severity", "medium") == "medium" else
+                0.3
+                for r in risk_items
+            )
+            score = _clamp_score_5(5 - penalty)
+            high_count = sum(1 for r in risk_items if getattr(r, "severity", "") == "high")
+            med_count  = sum(1 for r in risk_items if getattr(r, "severity", "") == "medium")
+            just = (
+                f"{len(risk_items)} risk(s) identified"
+                + (f" including {high_count} high-severity" if high_count else "")
+                + (f" and {med_count} medium-severity" if med_count else "")
+                + ". Score reflects inverse risk exposure (5 = minimal)."
+            )
+            return score, just
+
         ai_scores = parsed.get("evaluation_scores") if isinstance(parsed, dict) else None
         if isinstance(ai_scores, dict):
             maturity_eval = _score_value(ai_scores.get("maturity"), 3)
@@ -1088,6 +1109,9 @@ async def gap_analysis(
             impact_eval    = _clamp_score_5(fit_score / 2)
 
             maturity_just = duration_just = impact_just = ""
+
+        # Risk score: always derived from the structured risk list (LLM or heuristic path)
+        risk_eval, risk_just = _compute_risk_score(risks)
 
         # Catalog-only maturity: overwrite LLM / heuristic when label maps cleanly
         calibration_steps: list[dict] = []
@@ -1148,6 +1172,7 @@ async def gap_analysis(
                             "expertise": expertise_eval,
                             "duration": duration_eval,
                             "impact": impact_eval,
+                            "risk": risk_eval,
                         },
                     },
                     metadata=final_meta,
@@ -1165,6 +1190,8 @@ async def gap_analysis(
             duration_justification=duration_just,
             impact=impact_eval,
             impact_justification=impact_just,
+            risk=risk_eval,
+            risk_justification=risk_just,
         )
         need.risks = [r.model_dump() for r in risks]
         need.justifications = {
@@ -1172,6 +1199,7 @@ async def gap_analysis(
             "expertise_justification": expertise_just,
             "duration_justification": duration_just,
             "impact_justification": impact_just,
+            "risk_justification": risk_just,
             "fit_justification": fit_justification,
         }
         need.ivi_scores = {
@@ -1179,6 +1207,7 @@ async def gap_analysis(
             "expertise": expertise_eval,
             "duration": duration_eval,
             "impact": impact_eval,
+            "risk": risk_eval,
         }
         await db.flush()
 

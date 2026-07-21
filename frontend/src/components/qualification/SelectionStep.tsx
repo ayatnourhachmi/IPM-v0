@@ -16,15 +16,19 @@ const SCORE_LABELS: Array<{ key: keyof EvaluationSolution["scores"]; label: stri
     { key: "feasibility", label: "Maturity" },
     { key: "innovation", label: "Expertise" },
     { key: "cost", label: "Duration" },
+    { key: "risk", label: "Risk" },
 ];
 
 const RADAR_CENTER = 70;
 const RADAR_RADIUS = 42;
+// Pentagon: 5 axes at -90°, -18°, 54°, 126°, 198° (clockwise from top)
+const _deg = (d: number) => (d * Math.PI) / 180;
 const RADAR_AXIS_POINTS = [
-    { x: RADAR_CENTER, y: RADAR_CENTER - RADAR_RADIUS },
-    { x: RADAR_CENTER + RADAR_RADIUS, y: RADAR_CENTER },
-    { x: RADAR_CENTER, y: RADAR_CENTER + RADAR_RADIUS },
-    { x: RADAR_CENTER - RADAR_RADIUS, y: RADAR_CENTER },
+    { x: RADAR_CENTER + RADAR_RADIUS * Math.cos(_deg(-90)),  y: RADAR_CENTER + RADAR_RADIUS * Math.sin(_deg(-90))  }, // top – Impact
+    { x: RADAR_CENTER + RADAR_RADIUS * Math.cos(_deg(-18)),  y: RADAR_CENTER + RADAR_RADIUS * Math.sin(_deg(-18))  }, // upper-right – Maturity
+    { x: RADAR_CENTER + RADAR_RADIUS * Math.cos(_deg(54)),   y: RADAR_CENTER + RADAR_RADIUS * Math.sin(_deg(54))   }, // lower-right – Expertise
+    { x: RADAR_CENTER + RADAR_RADIUS * Math.cos(_deg(126)),  y: RADAR_CENTER + RADAR_RADIUS * Math.sin(_deg(126))  }, // lower-left – Duration
+    { x: RADAR_CENTER + RADAR_RADIUS * Math.cos(_deg(198)),  y: RADAR_CENTER + RADAR_RADIUS * Math.sin(_deg(198))  }, // upper-left – Risk
 ] as const;
 
 function radarPoint(index: number, value: number) {
@@ -56,7 +60,7 @@ function SelectionRadarChart({ solution }: { solution: SelectionSolution }) {
         <div className="selection-radar-wrap" aria-label="Dimension score radar chart">
             <svg className="selection-radar-chart" viewBox="0 0 140 140" role="img" aria-labelledby={`radar-title-${solution.id}`}>
                 <title id={`radar-title-${solution.id}`}>
-                    Impact {solution.scores.fit} of 5, Maturity {solution.scores.feasibility} of 5, Expertise {solution.scores.innovation} of 5, Duration {solution.scores.cost} of 5
+                    Impact {solution.scores.fit} of 5, Maturity {solution.scores.feasibility} of 5, Expertise {solution.scores.innovation} of 5, Duration {solution.scores.cost} of 5, Risk {solution.scores.risk ?? 3} of 5
                 </title>
                 {gridLevels}
                 {RADAR_AXIS_POINTS.map((point, index) => (
@@ -86,17 +90,21 @@ function SelectionRadarChart({ solution }: { solution: SelectionSolution }) {
                 <span>Impact</span>
                 <strong>{solution.scores.fit}/5</strong>
             </div>
-            <div className="selection-radar-label selection-radar-label-right">
+            <div className="selection-radar-label selection-radar-label-upper-right">
                 <span>Maturity</span>
                 <strong>{solution.scores.feasibility}/5</strong>
             </div>
-            <div className="selection-radar-label selection-radar-label-bottom">
+            <div className="selection-radar-label selection-radar-label-lower-right">
                 <span>Expertise</span>
                 <strong>{solution.scores.innovation}/5</strong>
             </div>
-            <div className="selection-radar-label selection-radar-label-left">
+            <div className="selection-radar-label selection-radar-label-lower-left">
                 <span>Duration</span>
                 <strong>{solution.scores.cost}/5</strong>
+            </div>
+            <div className="selection-radar-label selection-radar-label-upper-left">
+                <span>Risk</span>
+                <strong>{(solution.scores.risk ?? 3)}/5</strong>
             </div>
         </div>
     );

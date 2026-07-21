@@ -412,6 +412,16 @@ class EvaluationScores(BaseModel):
         default="",
         description="Two-sentence client rationale for impact score, citing matching features and gaps",
     )
+    risk: int = Field(
+        default=3,
+        ge=1,
+        le=5,
+        description="Risk posture score (5=minimal risk, 1=critical/many risks) derived from gap-analysis risk items",
+    )
+    risk_justification: str = Field(
+        default="",
+        description="Two-sentence client rationale for risk score, summarising identified risk severity",
+    )
 
 
 class SelectedSolutionPayload(BaseModel):

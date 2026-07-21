@@ -36,6 +36,8 @@ type GapAnalysisSnapshot = {
         duration_justification: string;
         impact: number;
         impact_justification: string;
+        risk?: number;
+        risk_justification?: string;
     };
     solution_name: string;
 };
@@ -45,6 +47,7 @@ type EvaluationScores = {
     feasibility: number;
     cost: number;
     innovation: number;
+    risk: number;
 };
 
 type Sg2State = {
@@ -80,6 +83,7 @@ function buildJustificationsFromGap(solution: SelectedSolution): EvaluationScore
                 feasibility: justification("Preliminary maturity estimate from Discovery relevance.", "estimate"),
                 innovation: justification("Preliminary expertise estimate from Discovery relevance.", "estimate"),
                 cost: justification("Preliminary duration estimate from Discovery relevance.", "estimate"),
+                risk: justification("Preliminary risk estimate from Discovery relevance.", "estimate"),
             };
         }
 
@@ -105,6 +109,7 @@ function buildJustificationsFromGap(solution: SelectedSolution): EvaluationScore
                     "derived",
                 )
                 : justification("Duration estimated from gap-analysis implementation complexity.", "derived"),
+            risk: justification("Risk posture estimated from gap-analysis implementation complexity and missing features.", "derived"),
         };
     };
 
@@ -117,6 +122,7 @@ function buildJustificationsFromGap(solution: SelectedSolution): EvaluationScore
         feasibility: aiJustification(es.maturity_justification) ?? undefined,
         innovation: aiJustification(es.expertise_justification) ?? undefined,
         cost: aiJustification(es.duration_justification) ?? undefined,
+        risk: aiJustification(es.risk_justification) ?? undefined,
     };
 
     const fallback = derivedFromGap();
@@ -125,6 +131,7 @@ function buildJustificationsFromGap(solution: SelectedSolution): EvaluationScore
         feasibility: fromAi.feasibility ?? fallback.feasibility!,
         innovation: fromAi.innovation ?? fallback.innovation!,
         cost: fromAi.cost ?? fallback.cost!,
+        risk: fromAi.risk ?? fallback.risk!,
     };
 }
 
@@ -142,12 +149,16 @@ function buildScoresFromGap(solution: SelectedSolution): { scores: EvaluationSco
         typeof es.duration === "number" &&
         typeof es.expertise === "number"
     ) {
+        // Risk: use backend-computed score when available, else derive from missing/resources
+        const riskFromBackend = typeof es.risk === "number" ? clampScore(es.risk) : null;
+        const riskDerived = clampScore(5 - (gap.features_missing.length * 0.4) - (gap.resources_needed.length * 0.3));
         return {
             scores: {
                 fit: clampScore(es.impact),
                 feasibility: clampScore(es.maturity),
                 cost: clampScore(es.duration),
                 innovation: clampScore(es.expertise),
+                risk: riskFromBackend ?? riskDerived,
             },
             source: "gap-analysis",
         };
@@ -161,9 +172,10 @@ function buildScoresFromGap(solution: SelectedSolution): { scores: EvaluationSco
     const feasibility = clampScore(5 - (missing * 0.45) - (resources * 0.35) + (matching * 0.1));
     const cost = clampScore(5 - (resources * 0.4) - (missing * 0.2) + (matching * 0.05));
     const innovation = clampScore((gap.fit_score / 2.5) + Math.min(1, missing * 0.2) + Math.min(0.6, matching * 0.1));
+    const risk = clampScore(5 - (missing * 0.4) - (resources * 0.3));
 
     return {
-        scores: { fit, feasibility, cost, innovation },
+        scores: { fit, feasibility, cost, innovation, risk },
         source: "gap-analysis",
     };
 }
@@ -171,9 +183,10 @@ function buildScoresFromGap(solution: SelectedSolution): { scores: EvaluationSco
 function calculateIviScore(scores: EvaluationScores) {
     return round((
         scores.fit * 0.35 +
-        scores.feasibility * 0.25 +
-        scores.innovation * 0.25 +
-        scores.cost * 0.15
+        scores.feasibility * 0.20 +
+        scores.innovation * 0.20 +
+        scores.cost * 0.10 +
+        scores.risk * 0.15
     ) * 20);
 }
 
