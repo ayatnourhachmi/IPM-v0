@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAnalyze } from "@/hooks/useAnalyze";
-import { createNeed, getBackendHealth, getGapAnalysis, getNeed, searchCatalog, updateNeedStatus } from "@/lib/api";
+import { createNeed, getBackendHealth, getExternalGapAnalysis, getGapAnalysis, getNeed, searchCatalog, searchExternalSolutions, updateNeedStatus } from "@/lib/api";
 import { BusinessNeedStep } from "@/components/sourcing/BusinessNeedStep";
 import {
     DiscoveryStep,
@@ -18,7 +18,7 @@ import {
     type SourcingWorkflowStepId,
 } from "@/components/sourcing/SourcingWorkflowProgress";
 import { IpmFlowShell } from "@/components/sourcing/IpmFlowShell";
-import type { BusinessNeed, CatalogProduct, DuplicateMatch, GapAnalysisResponse, Horizon, Objective, Origin, Status } from "@/lib/types";
+import type { BusinessNeed, CatalogProduct, DuplicateMatch, ExternalSolutionResponse, GapAnalysisResponse, Horizon, Objective, Origin, Status } from "@/lib/types";
 import { formatImpactLabel, HORIZON_LABELS, OBJECTIVE_LABELS, ORIGIN_LABELS } from "@/lib/types";
 
 const GENERIC_ALIGNMENT: SolutionAlignment = {
@@ -246,6 +246,12 @@ export function SourcingShell({
     const [discoveryLoadError, setDiscoveryLoadError] = useState<string | null>(null);
     const [isAnalyzingAlignment, setIsAnalyzingAlignment] = useState(false);
     const [isTakingSolution, setIsTakingSolution] = useState(false);
+
+    const [isSearchingExternal, setIsSearchingExternal] = useState(false);
+    const [externalSolution, setExternalSolution] = useState<ExternalSolutionResponse | null>(null);
+    const [externalSearchError, setExternalSearchError] = useState<string | null>(null);
+    const [isRunningExternalGap, setIsRunningExternalGap] = useState(false);
+    const [externalGapResult, setExternalGapResult] = useState<GapAnalysisResponse | null>(null);
 
     const focusedSolution = focusedSolutionId
         ? discoverySolutions.find((solution) => solution.id === focusedSolutionId) ?? null
@@ -525,6 +531,48 @@ export function SourcingShell({
         }
     };
 
+    const handleSearchExternal = async () => {
+        const need = currentNeed ?? await createNeedIfPossible().catch(() => null);
+        if (!need) {
+            setExternalSearchError("Save the business need before searching external solutions.");
+            return;
+        }
+        setIsSearchingExternal(true);
+        setExternalSearchError(null);
+        setExternalSolution(null);
+        setExternalGapResult(null);
+        try {
+            const result = await searchExternalSolutions(need.id);
+            setExternalSolution(result);
+        } catch (err) {
+            setExternalSearchError(
+                err instanceof Error ? err.message : "External search failed. Please try again."
+            );
+        } finally {
+            setIsSearchingExternal(false);
+        }
+    };
+
+    const handleRunExternalGapAnalysis = async () => {
+        if (!externalSolution) return;
+        const need = currentNeed ?? await createNeedIfPossible().catch(() => null);
+        if (!need) {
+            setExternalSearchError("Save the business need before running gap analysis.");
+            return;
+        }
+        setIsRunningExternalGap(true);
+        try {
+            const gap = await getExternalGapAnalysis(need.id, externalSolution);
+            setExternalGapResult(gap);
+        } catch (err) {
+            setExternalSearchError(
+                err instanceof Error ? err.message : "External gap analysis failed. Please try again."
+            );
+        } finally {
+            setIsRunningExternalGap(false);
+        }
+    };
+
     const handleTakeSolution = async () => {
         if (selectedSolutions.length === 0) return;
 
@@ -695,6 +743,13 @@ export function SourcingShell({
                     }}
                     onToggleSolution={handleToggleSolution}
                     onTakeSolution={handleTakeSolution}
+                    isSearchingExternal={isSearchingExternal}
+                    externalSolution={externalSolution}
+                    externalSearchError={externalSearchError}
+                    isRunningExternalGap={isRunningExternalGap}
+                    externalGapResult={externalGapResult}
+                    onSearchExternal={handleSearchExternal}
+                    onRunExternalGapAnalysis={handleRunExternalGapAnalysis}
                 />
             );
         }

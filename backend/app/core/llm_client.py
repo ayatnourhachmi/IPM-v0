@@ -180,6 +180,7 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             '- duration_justification: "Delivery is moderate because core dashboards can be stood up quickly, '
             "but revenue-tracking gaps and financial-system integration add implementation work. "
             'Resource needs for a data scientist and platform integration extend the timeline."\n\n'
+            "{{external_override_block}}"
             "- Return JSON only."
         ),
     },
@@ -350,6 +351,57 @@ FALLBACK_PROMPTS: dict[str, dict[str, str]] = {
             "  ]\n"
             "}\n\n"
             "Now generate 3 suggestions for the pitch above."
+        ),
+    },
+    "external-solution-synthesis": {
+        "system": (
+            "You synthesise an external solution concept for a business need using web search results.\n"
+            "Propose ONE new solution concept inspired by real tools, products, and trends found in the "
+            "search results — do not copy a single competitor verbatim; synthesise a differentiated concept.\n"
+            "Cite sources for every factual claim using only URLs and titles from the search_results block "
+            "provided by the user. Do not fabricate sources or invent URLs.\n"
+            "maturity_estimate MUST always be the literal string \"Concept\" — never a catalog tier "
+            "(PoC, Pilot, Production, Multi-ref do not apply here).\n"
+            "If fewer than two usable sources are available in search_results, set low_confidence to true "
+            "and keep the concept conservative rather than filling gaps with invention.\n"
+            "Return ONLY valid JSON — no markdown, no preamble, no explanation."
+        ),
+        "user": (
+            "Business need:\n"
+            "- Pitch: {{pitch}}\n"
+            "- Objective: {{objective}}\n"
+            "- Expected impact: {{impact}}\n"
+            "- Domains: {{domains}}\n\n"
+            "Search results (sole factual grounding — cite only these):\n"
+            "{{search_results}}\n\n"
+            "{{internal_context}}\n"
+            "Return this exact JSON structure:\n"
+            "{\n"
+            '  "solution_name": "<short, distinct, professional name for the concept>",\n'
+            '  "solution_description": "<2 to 4 sentences grounded in search results>",\n'
+            '  "solution_features": [\n'
+            '    "<concrete feature 1>",\n'
+            '    "... 3 to 6 items total"\n'
+            "  ],\n"
+            '  "inspired_by": [\n'
+            '    { "name": "<source name or product name>", "url": "<url from search_results>" }\n'
+            "  ],\n"
+            '  "differentiation_from_internal": "<1-2 sentences on gap this covers vs internal options, or null>",\n'
+            '  "maturity_estimate": "Concept",\n'
+            '  "low_confidence": false\n'
+            "}\n\n"
+            "Rules:\n"
+            "- solution_name: short, professional, and distinctive — do not use generic terms like "
+            "'AI Platform' or 'Digital Solution'.\n"
+            "- solution_description: 2 to 4 sentences; must be grounded in at least one search result.\n"
+            "- solution_features: 3 to 6 concrete, specific capabilities — not marketing slogans.\n"
+            "- inspired_by: include 1 to 5 sources from search_results; url must appear verbatim from "
+            "the search_results block above.\n"
+            "- differentiation_from_internal: populate only if the user message included "
+            "internal_matches_context; otherwise null.\n"
+            "- maturity_estimate: ALWAYS the literal string \"Concept\" — never change this.\n"
+            "- low_confidence: true if fewer than 2 search results had usable content; false otherwise.\n"
+            "- Return JSON only."
         ),
     },
     "business-impact-references": {

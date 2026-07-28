@@ -494,12 +494,79 @@ class SelectedSolutionPayload(BaseModel):
         return _coerce_solution_features(value)
 
 
+# ---------------------------------------------------------------------------
+# External solution search schemas
+# ---------------------------------------------------------------------------
+
+
+class InspiredBySource(BaseModel):
+    """A source (tool, product, or article) that inspired the external solution concept."""
+
+    name: str = Field(description="Source name, product name, or article title")
+    url: str = Field(default="", description="URL from the search results; empty when unavailable")
+
+
+class ExternalSolutionResponse(BaseModel):
+    """Response for POST /needs/{need_id}/search-external."""
+
+    solution_name: str = Field(description="Short, distinct name for the synthesised concept")
+    solution_description: str = Field(description="2–4 sentence description grounded in search results")
+    solution_features: list[str] = Field(default_factory=list, description="3–6 concrete features")
+    inspired_by: list[InspiredBySource] = Field(
+        default_factory=list,
+        description="Sources cited in the synthesis (from search results only)",
+    )
+    differentiation_from_internal: Optional[str] = Field(
+        default=None,
+        description="How this concept covers gaps not addressed by internal matches, if provided",
+    )
+    maturity_estimate: str = Field(
+        default="Concept",
+        description="Always the literal string 'Concept' — not a DXC catalog tier",
+    )
+    low_confidence: bool = Field(
+        default=False,
+        description="True when fewer than 2 usable search results were available",
+    )
+    sources: list[dict] = Field(
+        default_factory=list,
+        description="Raw search result sources (title + url) used for synthesis",
+    )
+
+
+class DxcBuildability(BaseModel):
+    """DXC's ability to build the external concept from scratch — populated only in EXTERNAL mode."""
+
+    buildable: bool = Field(description="True when DXC expertise score >= 3 for this concept")
+    rationale: str = Field(
+        description="2 sentences, 35–60 words, citing a named DXC documented capability or evidence",
+    )
+    closest_internal_reference: Optional[str] = Field(
+        default=None,
+        description="Name of the closest DXC catalog solution reviewed in this session, or null",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Gap analysis request / response
+# ---------------------------------------------------------------------------
+
+
 class GapAnalysisRequest(BaseModel):
     """Request body for POST /needs/{need_id}/gap-analysis."""
 
     selected_solution: SelectedSolutionPayload = Field(
         ...,
         description="Selected catalog solution — aligns with CatalogProduct fields.",
+    )
+    mode: Literal["CATALOG", "EXTERNAL"] = Field(
+        default="CATALOG",
+        description=(
+            "CATALOG (default): standard gap analysis against a DXC catalog entry. "
+            "EXTERNAL: gap analysis against an externally synthesised concept — "
+            "maturity is always 1, expertise reflects DXC's build-readiness, "
+            "and dxc_buildability is populated in the response."
+        ),
     )
 
 
@@ -537,6 +604,10 @@ class GapAnalysisResponse(BaseModel):
     fit_justification: str = Field(default="", description="One-sentence rationale for fit_score")
     evaluation_scores: EvaluationScores
     solution_name: str
+    dxc_buildability: Optional[DxcBuildability] = Field(
+        default=None,
+        description="Populated only when mode=EXTERNAL — DXC's ability to build the concept from scratch",
+    )
 
 
 class RecommendationSolutionPayload(BaseModel):

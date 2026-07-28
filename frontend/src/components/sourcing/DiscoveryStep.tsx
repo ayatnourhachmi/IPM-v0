@@ -1,9 +1,10 @@
 "use client";
 
 import { BusinessNeedAlignment } from "@/components/sourcing/BusinessNeedAlignment";
+import { ExternalSolutionCard } from "@/components/sourcing/ExternalSolutionCard";
 import { PhaseLoading } from "@/components/sourcing/PhaseLoading";
 import { SolutionCard } from "@/components/sourcing/SolutionCard";
-import type { CatalogProduct, EvaluationScores, RiskItem } from "@/lib/types";
+import type { CatalogProduct, EvaluationScores, ExternalSolutionResponse, GapAnalysisResponse, RiskItem } from "@/lib/types";
 
 export interface SolutionAlignment {
     covered: string[];
@@ -40,6 +41,14 @@ interface DiscoveryStepProps {
     onCloseResults: () => void;
     onToggleSolution: (solution: DiscoverySolution) => void;
     onTakeSolution: () => void;
+    /** External solution search */
+    isSearchingExternal?: boolean;
+    externalSolution?: ExternalSolutionResponse | null;
+    externalSearchError?: string | null;
+    isRunningExternalGap?: boolean;
+    externalGapResult?: GapAnalysisResponse | null;
+    onSearchExternal?: () => void;
+    onRunExternalGapAnalysis?: () => void;
 }
 
 export function DiscoveryStep({
@@ -55,6 +64,13 @@ export function DiscoveryStep({
     onCloseResults,
     onToggleSolution,
     onTakeSolution,
+    isSearchingExternal = false,
+    externalSolution = null,
+    externalSearchError = null,
+    isRunningExternalGap = false,
+    externalGapResult = null,
+    onSearchExternal,
+    onRunExternalGapAnalysis,
 }: DiscoveryStepProps) {
     const selectedCount = selectedSolutionIds.size;
     const subtitle = discoveryLaunched
@@ -83,6 +99,40 @@ export function DiscoveryStep({
                         </div>
                         {isLaunching && (
                             <PhaseLoading phase="sourcing" label="Searching the DXC catalog..." />
+                        )}
+
+                        <div className="ipm-discovery-launch-card ipm-discovery-launch-card--external">
+                            <div>
+                                <h3>Search External Solutions</h3>
+                                <p>
+                                    Use AI-powered web search to find external tools, trends, and competitor
+                                    solutions — synthesised into one concept for your business need
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="ipm-primary-action ipm-primary-action--external"
+                                disabled={isSearchingExternal || !onSearchExternal}
+                                onClick={onSearchExternal}
+                            >
+                                {isSearchingExternal ? "SEARCHING..." : "SEARCH EXTERNAL"}
+                            </button>
+                        </div>
+                        {isSearchingExternal && (
+                            <PhaseLoading phase="sourcing" label="Searching the web and synthesising..." />
+                        )}
+                        {externalSearchError && (
+                            <div className="ipm-analyze-error" role="alert">
+                                {externalSearchError}
+                            </div>
+                        )}
+                        {externalSolution && onRunExternalGapAnalysis && (
+                            <ExternalSolutionCard
+                                solution={externalSolution}
+                                isRunningGapAnalysis={isRunningExternalGap}
+                                gapResult={externalGapResult}
+                                onRunGapAnalysis={onRunExternalGapAnalysis}
+                            />
                         )}
 
                         <div className="ipm-external-tools">
@@ -138,6 +188,30 @@ export function DiscoveryStep({
                                         : `TAKE SELECTED (${selectedCount})`}
                             </button>
                         )}
+
+                        <div className="ipm-external-search-inline">
+                            <button
+                                type="button"
+                                className="ipm-primary-action ipm-primary-action--external"
+                                disabled={isSearchingExternal || !onSearchExternal}
+                                onClick={onSearchExternal}
+                            >
+                                {isSearchingExternal ? "SEARCHING..." : "SEARCH EXTERNAL SOLUTIONS"}
+                            </button>
+                            {externalSearchError && (
+                                <div className="ipm-analyze-error" role="alert">
+                                    {externalSearchError}
+                                </div>
+                            )}
+                            {externalSolution && onRunExternalGapAnalysis && (
+                                <ExternalSolutionCard
+                                    solution={externalSolution}
+                                    isRunningGapAnalysis={isRunningExternalGap}
+                                    gapResult={externalGapResult}
+                                    onRunGapAnalysis={onRunExternalGapAnalysis}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

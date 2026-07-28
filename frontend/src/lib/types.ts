@@ -144,6 +144,31 @@ export interface EvaluationScores {
     duration_justification: string;
     impact: number;
     impact_justification: string;
+    /** Risk posture score — 5 = minimal risk; 1 = critical. Derived from gap-analysis risk items. */
+    risk?: number;
+    risk_justification?: string;
+}
+
+export interface DxcBuildability {
+    buildable: boolean;
+    rationale: string;
+    closest_internal_reference: string | null;
+}
+
+export interface InspiredBySource {
+    name: string;
+    url: string;
+}
+
+export interface ExternalSolutionResponse {
+    solution_name: string;
+    solution_description: string;
+    solution_features: string[];
+    inspired_by: InspiredBySource[];
+    differentiation_from_internal: string | null;
+    maturity_estimate: "Concept";
+    low_confidence: boolean;
+    sources: Array<{ title: string; url: string }>;
 }
 
 export interface GapAnalysisResponse {
@@ -155,6 +180,8 @@ export interface GapAnalysisResponse {
     fit_justification: string;
     evaluation_scores: EvaluationScores;
     solution_name: string;
+    /** Populated only when gap analysis was run with mode=EXTERNAL */
+    dxc_buildability?: DxcBuildability | null;
 }
 
 export interface GapAnalysisContextPayload {

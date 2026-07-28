@@ -34,6 +34,7 @@ from app.schemas.business_need import (
     BusinessNeedResponse,
     CatalogProduct,
     CatalogSearchResponse,
+    DxcBuildability,
     EmailDossierRequest,
     EmailDossierResponse,
     EvaluationScores,
@@ -44,6 +45,8 @@ from app.schemas.business_need import (
     BusinessImpactScoreRequest,
     BusinessImpactScoreResponse,
     ExportReportRequest,
+    ExternalSolutionResponse,
+    InspiredBySource,
     CreateNeedRequest,
     GapAnalysisRequest,
     GapAnalysisResponse,
@@ -900,6 +903,210 @@ async def catalog_search(
         ) from exc
 
 
+@router.post("/{need_id}/search-external", response_model=ExternalSolutionResponse)
+async def search_external_solutions(
+    need_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ExternalSolutionResponse:
+    """Search the web for external solution concepts relevant to a business need.
+
+    Runs 2–3 targeted queries (cached per (pitch+objective+domains) for 24 h),
+    feeds results into the external-solution-synthesis LLM prompt, and returns
+    a single concept card.  Gap-analysis for the returned concept is a separate,
+    subsequent user action (POST /{need_id}/gap-analysis with mode=EXTERNAL).
+    """
+    from app.services.search_service import (
+        build_search_queries,
+        get_cached_search_results,
+        get_search_provider,
+        set_cached_search_results,
+    )
+
+    try:
+        result = await db.execute(
+            select(BusinessNeed).where(BusinessNeed.id == need_id)
+        )
+        need = result.scalar_one_or_none()
+        if need is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Business need '{need_id}' not found.",
+            )
+
+        need_tags: dict = need.tags or {}
+        objective: str = _tag_scalar(need_tags, "objective") or "Not specified"
+        impact_list: list[str] = _tag_list(need_tags, "impact")
+        impact: str = ", ".join(impact_list) if impact_list else "Not specified"
+        domains_list: list[str] = _tag_list(need_tags, "domain")
+        domains: str = ", ".join(domains_list) if domains_list else "Not specified"
+
+        # ── Search step (with 24-h cache) ──────────────────────────────────────
+        cached = await get_cached_search_results(need.pitch, objective, domains_list)
+        if cached is not None:
+            all_results = cached
+            queries: list[str] = []
+            logger.info(
+                "search-external [%s]: cache hit (%d results)", need_id, len(all_results)
+            )
+        else:
+            queries = build_search_queries(need.pitch, objective, domains_list)
+            provider = get_search_provider()
+
+            search_tasks = [provider.search(q) for q in queries]
+            per_query_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+
+            all_results = []
+            seen_urls: set[str] = set()
+            for batch in per_query_results:
+                if isinstance(batch, Exception):
+                    logger.warning("search-external: query failed: %s", batch)
+                    continue
+                for r in batch:
+                    if r.url and r.url in seen_urls:
+                        continue
+                    seen_urls.add(r.url)
+                    all_results.append(r)
+
+            if not all_results:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=(
+                        "Web search returned no results. "
+                        "Check that OPENAI_API_KEY is set in your .env file and restart the backend."
+                    ),
+                )
+
+            await set_cached_search_results(
+                need.pitch, objective, domains_list, queries, all_results
+            )
+            logger.info(
+                "search-external [%s]: %d fresh results from %d queries",
+                need_id, len(all_results), len(queries),
+            )
+
+        # ── Synthesis LLM call ─────────────────────────────────────────────────
+        search_results_block = "\n".join(r.to_prompt_line() for r in all_results[:12])
+
+        _lf = new_langfuse_client()
+        _lf_trace = None
+        if _lf is not None:
+            try:
+                _lf_trace = _lf.trace(
+                    name="external-solution-synthesis",
+                    input={
+                        "need_id": need_id,
+                        "need_pitch": need.pitch,
+                        "search_result_count": len(all_results),
+                    },
+                    metadata={
+                        "endpoint": "search-external",
+                        "need_id": need_id,
+                        "path": "synthesis",
+                    },
+                )
+            except Exception:
+                pass
+
+        synthesis_response = await llm_client.complete(
+            prompt_name="external-solution-synthesis",
+            variables={
+                "pitch": need.pitch,
+                "objective": objective,
+                "impact": impact,
+                "domains": domains,
+                "search_results": search_results_block or "No search results available.",
+                "internal_context": "",
+                "explicit": (
+                    "Synthesise one external solution concept grounded in the provided search results."
+                ),
+                "implicit": (
+                    "Identify the most innovative and distinctive tools from the search results, "
+                    "then propose a concept that combines and differentiates them."
+                ),
+                "strategic": (
+                    "Highlight how this concept could fill gaps not addressed by DXC's internal catalog."
+                ),
+            },
+            response_format="json",
+            lf_parent_trace=_lf_trace,
+        )
+
+        try:
+            parsed = llm_client.parse_json_response(synthesis_response)
+        except Exception as parse_exc:
+            logger.error(
+                "External synthesis JSON parse failed for %s: %s", need_id, parse_exc
+            )
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="LLM returned invalid JSON for external solution synthesis",
+            ) from parse_exc
+
+        # ── Build response ─────────────────────────────────────────────────────
+        inspired_by_raw = parsed.get("inspired_by") or []
+        inspired_by: list[InspiredBySource] = []
+        for item in inspired_by_raw:
+            if isinstance(item, dict):
+                inspired_by.append(
+                    InspiredBySource(
+                        name=str(item.get("name") or ""),
+                        url=str(item.get("url") or ""),
+                    )
+                )
+            elif isinstance(item, str):
+                inspired_by.append(InspiredBySource(name=item, url=""))
+
+        sources_payload = [
+            {"title": r.title, "url": r.url}
+            for r in all_results[:12]
+            if r.url
+        ]
+
+        try:
+            if _lf_trace:
+                _lf_trace.update(
+                    output={
+                        "solution_name": parsed.get("solution_name"),
+                        "low_confidence": parsed.get("low_confidence", False),
+                        "inspired_by_count": len(inspired_by),
+                    },
+                    metadata={
+                        "endpoint": "search-external",
+                        "need_id": need_id,
+                        "path": "synthesis",
+                    },
+                )
+            safe_flush(_lf)
+        except Exception:
+            pass
+
+        return ExternalSolutionResponse(
+            solution_name=str(parsed.get("solution_name") or "External Concept"),
+            solution_description=str(parsed.get("solution_description") or ""),
+            solution_features=[
+                str(f) for f in (parsed.get("solution_features") or []) if f
+            ],
+            inspired_by=inspired_by,
+            differentiation_from_internal=(
+                str(parsed["differentiation_from_internal"])
+                if parsed.get("differentiation_from_internal")
+                else None
+            ),
+            maturity_estimate="Concept",
+            low_confidence=bool(parsed.get("low_confidence", False)),
+            sources=sources_payload,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("search-external failed for %s: %s", need_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="External solution search failed. Please try again.",
+        ) from exc
+
+
 @router.post("/{need_id}/gap-analysis", response_model=GapAnalysisResponse)
 async def gap_analysis(
     need_id: str,
@@ -920,6 +1127,9 @@ async def gap_analysis(
             )
 
         # Extract solution fields from request body
+        gap_mode: str = body.mode  # "CATALOG" | "EXTERNAL"
+        is_external = gap_mode == "EXTERNAL"
+
         sol = body.selected_solution.model_dump()
         name: str = sol.get("name", "Unknown")
         description: str = sol.get("description", "") or ""
@@ -939,10 +1149,63 @@ async def gap_analysis(
         domains_list: list[str] = _tag_list(need_tags, "domain")
         domains: str = ", ".join(domains_list) if domains_list else "Not specified"
 
-        # Context compression — drop features when solution domain doesn't match need
-        features, _compressed = _compress_solution_context(features, domain, domains_list)
+        if is_external:
+            # Skip context compression and use "Concept" as the maturity label.
+            maturity_level = "Concept"
+            # Domain for expertise context: use the first need domain if the solution
+            # didn't supply one (external concepts often don't have a catalog domain).
+            if not domain and domains_list:
+                domain = domains_list[0]
+        else:
+            # Context compression — drop features when solution domain doesn't match need
+            features, _compressed = _compress_solution_context(features, domain, domains_list)
 
         dxc_expertise_context = format_dxc_expertise_for_prompt(DXC_CONTEXT, domain=domain)
+
+        # ── EXTERNAL mode override block injected at end of gap-analysis prompt ──
+        if is_external:
+            # Build closest_internal_reference hint from extra payload if available
+            internal_matches_raw = sol.get("internal_matches_context") or []
+            if internal_matches_raw and isinstance(internal_matches_raw, list):
+                names = [
+                    str(m.get("solution_name") or "")
+                    for m in internal_matches_raw
+                    if isinstance(m, dict) and m.get("solution_name")
+                ]
+                closest_hint = (
+                    "Use the closest name from this list if applicable, otherwise null: "
+                    + ", ".join(names)
+                )
+            else:
+                closest_hint = "null — no internal matches context was provided in this session"
+
+            external_override_block = (
+                "\nEXTERNAL CONCEPT MODE — These instructions supersede the catalog-specific rules above:\n\n"
+                "Solution type: The solution above is an externally synthesised concept, not a DXC catalog product.\n\n"
+                "Output schema addition: Add a top-level \"dxc_buildability\" key alongside evaluation_scores:\n"
+                "{\n"
+                '  "dxc_buildability": {\n'
+                '    "buildable": <true if evaluation_scores.expertise >= 3, false otherwise>,\n'
+                '    "rationale": "<2 sentences, 35-60 words — cite a named DXC documented capability '
+                'or explicitly reference the expertise score evidence from the DXC documented capabilities section above>",\n'
+                f'    "closest_internal_reference": <{closest_hint}>\n'
+                "  }\n"
+                "}\n\n"
+                "Maturity override: evaluation_scores.maturity MUST be exactly 1 (integer).\n"
+                "maturity_justification MUST be exactly: "
+                "\"Not applicable — concept stage, no catalog tier assigned. "
+                "The PoC/Pilot/Production/Multi-ref tiers do not apply to an externally synthesised concept.\"\n"
+                "Do NOT apply the catalog maturity tier mapping rule above.\n\n"
+                "Expertise framing override: For evaluation_scores.expertise, score and justify "
+                "DXC's readiness to build this concept from scratch — not DXC's track record on an "
+                "existing solution. Score 5 = DXC has strong documented capability to build this kind "
+                "of solution from existing assets and domain expertise; 1 = no evidence of capability. "
+                "Still derive the score ONLY from the DXC documented capabilities section above.\n\n"
+                "All other rules (fit_score, gap lists, duration, impact, risk, justification length "
+                "and sentence rules) apply unchanged.\n\n"
+            )
+        else:
+            external_override_block = ""
 
         variables: dict[str, str] = {
             "pitch": need.pitch,
@@ -957,6 +1220,7 @@ async def gap_analysis(
             "solution_complexity": complexity or "Not specified",
             "solution_domain": domain or "Not specified",
             "dxc_expertise_context": dxc_expertise_context,
+            "external_override_block": external_override_block,
         }
 
         gap_trace_meta = {
@@ -964,6 +1228,7 @@ async def gap_analysis(
             "need_id": need_id,
             "solution_id": sol.get("id", "unknown"),
             "solution_name": name,
+            "mode": gap_mode,
         }
         # Langfuse trace — create before LLM; generation attached inside llm_client.complete
         _lf = new_langfuse_client()
@@ -971,19 +1236,20 @@ async def gap_analysis(
         if _lf is not None:
             try:
                 _lf_trace = _lf.trace(
-                    name="gap-analysis",
+                    name=f"gap-analysis-{gap_mode.lower()}",
                     input={
                         "need_id": need_id,
                         "need_pitch": need.pitch,
                         "solution_name": name,
                         "solution_maturity": maturity_level,
+                        "mode": gap_mode,
                     },
                     metadata=gap_trace_meta,
                 )
             except Exception:
                 pass
 
-        # LLM call — replicates nlp_service.py pattern
+        # LLM call
         llm_response = await llm_client.complete(
             prompt_name="gap-analysis",
             variables={
@@ -991,12 +1257,17 @@ async def gap_analysis(
                 "explicit": (
                     "Produce a client-ready gap analysis with evidence-linked IVI rationales "
                     "suitable for a steering committee review."
+                    + (" Populate dxc_buildability as specified." if is_external else "")
                 ),
                 "implicit": (
                     "Populate gap lists first, then write two-sentence justifications that cite "
                     "named items from those lists."
                 ),
-                "strategic": "Highlight DXC delivery strengths only when supported by documented capabilities.",
+                "strategic": (
+                    "Highlight DXC build-readiness from scratch only when supported by documented capabilities."
+                    if is_external
+                    else "Highlight DXC delivery strengths only when supported by documented capabilities."
+                ),
             },
             response_format="json",
             lf_parent_trace=_lf_trace,
@@ -1113,26 +1384,43 @@ async def gap_analysis(
         # Risk score: always derived from the structured risk list (LLM or heuristic path)
         risk_eval, risk_just = _compute_risk_score(risks)
 
-        # Catalog-only maturity: overwrite LLM / heuristic when label maps cleanly
+        # ── EXTERNAL mode: pin maturity to 1 with fixed justification ───────────
         calibration_steps: list[dict] = []
-        _catalog_maturity = maturity_score(maturity_level)
-        if _catalog_maturity is not None:
-            if maturity_eval != _catalog_maturity:
-                logger.info(
-                    "Maturity scoring engine: maturity %s → %s from catalog maturity %r",
-                    maturity_eval,
-                    _catalog_maturity,
-                    maturity_level,
-                )
+        if is_external:
+            if maturity_eval != 1:
                 calibration_steps.append(
                     {
-                        "step": "catalog_maturity_alignment",
-                        "catalog_maturity_label": maturity_level,
+                        "step": "external_mode_maturity_pin",
                         "maturity_before": maturity_eval,
-                        "maturity_after": _catalog_maturity,
-                    },
+                        "maturity_after": 1,
+                        "reason": "EXTERNAL mode — concept stage, catalog tier does not apply",
+                    }
                 )
-            maturity_eval = _catalog_maturity
+            maturity_eval = 1
+            maturity_just = (
+                "Not applicable — concept stage, no catalog tier assigned. "
+                "The PoC/Pilot/Production/Multi-ref tiers do not apply to an externally synthesised concept."
+            )
+        else:
+            # Catalog-only maturity: overwrite LLM / heuristic when label maps cleanly
+            _catalog_maturity = maturity_score(maturity_level)
+            if _catalog_maturity is not None:
+                if maturity_eval != _catalog_maturity:
+                    logger.info(
+                        "Maturity scoring engine: maturity %s → %s from catalog maturity %r",
+                        maturity_eval,
+                        _catalog_maturity,
+                        maturity_level,
+                    )
+                    calibration_steps.append(
+                        {
+                            "step": "catalog_maturity_alignment",
+                            "catalog_maturity_label": maturity_level,
+                            "maturity_before": maturity_eval,
+                            "maturity_after": _catalog_maturity,
+                        },
+                    )
+                maturity_eval = _catalog_maturity
 
         # ── Post-LLM score calibration rules ──────────────────────────────────
         fit_score_before_cap = fit_score
@@ -1211,6 +1499,40 @@ async def gap_analysis(
         }
         await db.flush()
 
+        # ── EXTERNAL mode: extract dxc_buildability from LLM output ───────────
+        dxc_buildability: DxcBuildability | None = None
+        if is_external:
+            raw_bld = parsed.get("dxc_buildability") if isinstance(parsed, dict) else None
+            if isinstance(raw_bld, dict):
+                dxc_buildability = DxcBuildability(
+                    buildable=bool(raw_bld.get("buildable", expertise_eval >= 3)),
+                    rationale=str(raw_bld.get("rationale") or ""),
+                    closest_internal_reference=(
+                        str(raw_bld["closest_internal_reference"])
+                        if raw_bld.get("closest_internal_reference")
+                        else None
+                    ),
+                )
+            else:
+                # Fallback: derive buildability from expertise score if LLM omitted the block
+                dxc_buildability = DxcBuildability(
+                    buildable=expertise_eval >= 3,
+                    rationale=(
+                        f"DXC expertise score of {expertise_eval}/5 "
+                        + ("indicates sufficient capability to build this concept from scratch."
+                           if expertise_eval >= 3
+                           else "suggests limited documented capability to build this concept from scratch.")
+                        + " Full rationale not provided by the model."
+                    ),
+                    closest_internal_reference=None,
+                )
+            logger.info(
+                "Gap analysis EXTERNAL [%s]: expertise=%d buildable=%s",
+                need_id,
+                expertise_eval,
+                dxc_buildability.buildable,
+            )
+
         return GapAnalysisResponse(
             features_matching=features_matching,
             features_missing=features_missing,
@@ -1220,6 +1542,7 @@ async def gap_analysis(
             fit_justification=fit_justification,
             evaluation_scores=evaluation,
             solution_name=name,
+            dxc_buildability=dxc_buildability,
         )
 
     except HTTPException:

@@ -2,7 +2,7 @@
  * Typed fetch wrapper for all IPM API endpoints.
  */
 
-import type { AnalyzeResponse, AnalyzeSuggestionsResponse, AnalyzeTagsResponse, BusinessNeed, CatalogProduct, CatalogSearchResponse, CreateNeedRequest, EmailDossierRequest, EmailDossierResponse, ExportReportRequest, GapAnalysisResponse, RecommendationsRequest, RecommendationsResponse, UpdateStatusRequest } from "./types";
+import type { AnalyzeResponse, AnalyzeSuggestionsResponse, AnalyzeTagsResponse, BusinessNeed, CatalogProduct, CatalogSearchResponse, CreateNeedRequest, EmailDossierRequest, EmailDossierResponse, ExportReportRequest, ExternalSolutionResponse, GapAnalysisResponse, RecommendationsRequest, RecommendationsResponse, UpdateStatusRequest } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
@@ -130,6 +130,33 @@ export function getGapAnalysis(needId: string, selectedSolution: CatalogProduct)
         method: "POST",
         body: JSON.stringify({ selected_solution: selectedSolution }),
     });
+}
+
+export function getExternalGapAnalysis(
+    needId: string,
+    externalSolution: ExternalSolutionResponse,
+): Promise<GapAnalysisResponse> {
+    const selectedSolution = {
+        id: null,
+        name: externalSolution.solution_name,
+        description: externalSolution.solution_description,
+        features: externalSolution.solution_features,
+        maturity: "Concept",
+        maturity_level: "Concept",
+        domain: "",
+        business_impact: "",
+        complexity: "",
+    };
+    return request<GapAnalysisResponse>(`/api/v1/needs/${needId}/gap-analysis`, {
+        method: "POST",
+        body: JSON.stringify({ selected_solution: selectedSolution, mode: "EXTERNAL" }),
+    }, 30000);
+}
+
+export function searchExternalSolutions(needId: string): Promise<ExternalSolutionResponse> {
+    return request<ExternalSolutionResponse>(`/api/v1/needs/${needId}/search-external`, {
+        method: "POST",
+    }, 45000);
 }
 
 export function getRecommendations(needId: string, body: RecommendationsRequest): Promise<RecommendationsResponse> {
